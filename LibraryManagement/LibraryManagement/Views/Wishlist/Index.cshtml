@@ -1,0 +1,239 @@
+﻿@model List<LibraryManagement.Models.Wishlist>
+@{
+    ViewData["Title"] = "Danh sách yêu thích";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-heart text-danger"></i> Sách yêu thích của tôi</h2>
+        <a asp-controller="Books" asp-action="Index" class="btn btn-primary">
+            <i class="fas fa-book"></i> Tìm thêm sách
+        </a>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-info text-center py-5">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <h5>Chưa có sách yêu thích nào</h5>
+            <p class="mb-0">Hãy thêm sách vào danh sách yêu thích để dễ dàng tìm lại sau này!</p>
+            <a asp-controller="Books" asp-action="Index" class="btn btn-primary mt-3">
+                <i class="fas fa-search"></i> Khám phá sách
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var item in Model)
+            {
+                <div class="col-md-3 mb-4" id="wishlist-item-@item.BookId">
+                    <div class="card h-100 shadow-sm hover-shadow">
+                        <!-- Book Cover -->
+                        @if (!string.IsNullOrEmpty(item.Book.CoverImage))
+                        {
+                            <img src="@item.Book.CoverImage"
+                                 class="card-img-top"
+                                 alt="@item.Book.Title"
+                                 style="height: 250px; object-fit: cover;">
+                        }
+                        else
+                        {
+                            <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
+                                 style="height: 250px;">
+                                <i class="fas fa-book fa-3x"></i>
+                            </div>
+                        }
+
+                        <!-- Book Info -->
+                        <div class="card-body">
+                            <h5 class="card-title text-truncate" title="@item.Book.Title">
+                                @item.Book.Title
+                            </h5>
+                            <p class="card-text text-muted small mb-2">
+                                <i class="fas fa-user"></i> @item.Book.Author
+                            </p>
+
+                            @if (item.Book.Category != null)
+                            {
+                                <p class="card-text mb-2">
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-tag"></i> @item.Book.Category.CategoryName
+                                    </span>
+                                </p>
+                            }
+
+                            <!-- Availability Status -->
+                            <p class="card-text mb-2">
+                                @if (item.Book.IsPhysical)
+                                {
+                                    if (item.Book.AvailableQuantity > 0)
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle"></i> Còn sách
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle"></i> Hết sách
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-laptop"></i> Sách online
+                                    </span>
+                                }
+                            </p>
+
+                            <p class="card-text small text-muted">
+                                <i class="fas fa-clock"></i> Đã thêm: @item.AddedDate.ToString("dd/MM/yyyy")
+                            </p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="card-footer bg-white border-0">
+                            <div class="d-grid gap-2">
+                                <a asp-controller="Books"
+                                   asp-action="Details"
+                                   asp-route-id="@item.BookId"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i> Xem chi tiết
+                                </a>
+
+                                @if (item.Book.IsPhysical && item.Book.AvailableQuantity > 0)
+                                {
+                                    <a asp-controller="Rentals"
+                                       asp-action="Rent"
+                                       asp-route-bookId="@item.BookId"
+                                       class="btn btn-sm btn-success">
+                                        <i class="fas fa-shopping-cart"></i> Thuê ngay
+                                    </a>
+                                }
+                                else if (!item.Book.IsPhysical)
+                                {
+                                    <a asp-controller="OnlineRentals"
+                                       asp-action="RentOnline"
+                                       asp-route-bookId="@item.BookId"
+                                       class="btn btn-sm btn-info">
+                                        <i class="fas fa-download"></i> Thuê Online
+                                    </a>
+                                }
+
+                                <button onclick="removeFromWishlist(@item.BookId)"
+                                        class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i> Xóa khỏi yêu thích
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Summary -->
+        <div class="alert alert-light mt-4">
+            <i class="fas fa-info-circle"></i>
+            Bạn có <strong>@Model.Count</strong> cuốn sách trong danh sách yêu thích
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        async function removeFromWishlist(bookId) {
+            if (!confirm('Bạn có chắc muốn xóa sách này khỏi danh sách yêu thích?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/Wishlist/Remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Hiệu ứng fade out
+                    const itemElement = document.getElementById(`wishlist-item-${bookId}`);
+                    if (itemElement) {
+                        itemElement.style.transition = 'opacity 0.5s';
+                        itemElement.style.opacity = '0';
+
+                        setTimeout(() => {
+                            itemElement.remove();
+
+                            // Kiểm tra nếu không còn item nào thì reload
+                            const remainingItems = document.querySelectorAll('[id^="wishlist-item-"]');
+                            if (remainingItems.length === 0) {
+                                location.reload();
+                            }
+                        }, 500);
+                    }
+
+                    // Hiển thị thông báo
+                    showToast(result.message, 'success');
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Có lỗi xảy ra khi xóa sách khỏi danh sách yêu thích', 'error');
+            }
+        }
+
+        function showToast(message, type) {
+            const bgColor = type === 'success' ? '#28a745' : '#dc3545';
+            const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                z-index: 9999;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                animation: slideIn 0.3s ease-out;
+            `;
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+    </script>
+
+    <style>
+        .hover-shadow {
+            transition: all 0.3s ease;
+        }
+
+        .hover-shadow:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+        }
+
+        @@keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+}

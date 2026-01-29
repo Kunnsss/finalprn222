@@ -1,0 +1,56 @@
+﻿<!-- Views/OnlineRentals/Payment.cshtml -->
+@model LibraryManagement.Models.OnlineRentalTransaction
+@{
+    ViewData["Title"] = "Thanh toán";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="fas fa-credit-card"></i> Thanh toán</h4>
+            </div>
+            <div class="card-body">
+                <h5 class="mb-4">Thông tin giao dịch</h5>
+
+                <table class="table">
+                    <tr>
+                        <th>Sách:</th>
+                        <td>@Model.Book.Title</td>
+                    </tr>
+                    <tr>
+                        <th>Ngày mua:</th>
+                        <td>@Model.PurchaseDate.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                    <tr>
+                        <th>Hết hạn:</th>
+                        <td>@Model.ExpiryDate.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                    <tr>
+                        <th>Số tiền:</th>
+                        <td><strong class="text-danger">@Model.Amount.ToString("N0") VND</strong></td>
+                    </tr>
+                </table>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Đây là demo thanh toán. Trong thực tế, bạn sẽ được chuyển đến cổng thanh toán (VNPay, MoMo, ZaloPay...)
+                </div>
+
+                <form asp-action="ProcessPayment" method="post">
+                    <input type="hidden" name="transactionId" value="@Model.OnlineTransactionId" />
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-check-circle"></i> Xác nhận thanh toán
+                        </button>
+                        <a asp-action="MyOnlineRentals" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

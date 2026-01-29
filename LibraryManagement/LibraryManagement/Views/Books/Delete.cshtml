@@ -1,0 +1,108 @@
+﻿@model LibraryManagement.Models.Book
+@{
+    ViewData["Title"] = "Xóa sách";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4><i class="fas fa-trash"></i> Xác nhận xóa sách</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Cảnh báo!</strong> Bạn có chắc chắn muốn xóa sách này không? Hành động này không thể hoàn tác.
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        @if (!string.IsNullOrEmpty(Model.CoverImage))
+                        {
+                            <img src="@Model.CoverImage" class="img-fluid rounded" alt="@Model.Title">
+                        }
+                        else
+                        {
+                            <div class="bg-secondary d-flex align-items-center justify-content-center rounded" style="height: 300px;">
+                                <i class="fas fa-book fa-5x text-white"></i>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-md-8">
+                        <dl class="row">
+                            <dt class="col-sm-4">Tên sách:</dt>
+                            <dd class="col-sm-8">@Model.Title</dd>
+
+                            <dt class="col-sm-4">Tác giả:</dt>
+                            <dd class="col-sm-8">@Model.Author</dd>
+
+                            <dt class="col-sm-4">Thể loại:</dt>
+                            <dd class="col-sm-8">@(Model.Category?.CategoryName ?? "N/A")</dd>
+
+                            @if (!string.IsNullOrEmpty(Model.ISBN))
+                            {
+                                <dt class="col-sm-4">ISBN:</dt>
+                                <dd class="col-sm-8">@Model.ISBN</dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.Publisher))
+                            {
+                                <dt class="col-sm-4">Nhà xuất bản:</dt>
+                                <dd class="col-sm-8">@Model.Publisher</dd>
+                            }
+
+                            @if (Model.PublishedYear.HasValue)
+                            {
+                                <dt class="col-sm-4">Năm xuất bản:</dt>
+                                <dd class="col-sm-8">@Model.PublishedYear</dd>
+                            }
+
+                            <dt class="col-sm-4">Loại sách:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.IsPhysical)
+                                {
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-book"></i> Sách vật lý
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-laptop"></i> Sách online
+                                    </span>
+                                }
+                            </dd>
+
+                            @if (Model.IsPhysical)
+                            {
+                                <dt class="col-sm-4">Số lượng:</dt>
+                                <dd class="col-sm-8">@Model.AvailableQuantity / @Model.Quantity</dd>
+
+                                <dt class="col-sm-4">Giá thuê:</dt>
+                                <dd class="col-sm-8">@Model.RentalPrice.ToString("N0") VND/ngày</dd>
+                            }
+                            else
+                            {
+                                <dt class="col-sm-4">Giá online:</dt>
+                                <dd class="col-sm-8">@(Model.OnlinePrice != null ? Model.OnlinePrice.Value.ToString("N0") : "0") VND</dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+
+                <form asp-action="Delete" method="post" class="mt-4">
+                    <input type="hidden" asp-for="BookId" />
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Hủy
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Xác nhận xóa
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

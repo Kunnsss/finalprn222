@@ -1,0 +1,183 @@
+﻿@{
+    ViewData["Title"] = "Thống kê đọc sách";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">
+                <i class="fas fa-chart-bar"></i> Thống kê đọc sách
+            </h2>
+
+            <div class="btn-group mb-3" role="group">
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="fas fa-list"></i> Sách đã đọc
+                </a>
+                <a asp-action="AllHistory" class="btn btn-outline-primary">
+                    <i class="fas fa-history"></i> Tất cả lịch sử
+                </a>
+                <a asp-action="CompletedBooks" class="btn btn-outline-primary">
+                    <i class="fas fa-check-circle"></i> Đã hoàn thành
+                </a>
+                <a asp-action="Statistics" class="btn btn-primary active">
+                    <i class="fas fa-chart-bar"></i> Thống kê
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Tổng số sách đã đọc -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-white bg-primary shadow">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-book fa-3x"></i>
+                    </div>
+                    <h3 class="card-title mb-0">@ViewBag.TotalBooks</h3>
+                    <p class="card-text">Tổng sách đã đọc</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Số sách hoàn thành -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-white bg-success shadow">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-check-circle fa-3x"></i>
+                    </div>
+                    <h3 class="card-title mb-0">@ViewBag.CompletedBooks</h3>
+                    <p class="card-text">Sách hoàn thành</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tổng thời gian đọc -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-white bg-info shadow">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-clock fa-3x"></i>
+                    </div>
+                    <h3 class="card-title mb-0">@ViewBag.TotalReadingHours</h3>
+                    <p class="card-text">Giờ đọc sách</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tỷ lệ hoàn thành -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-white bg-warning shadow">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-percentage fa-3x"></i>
+                    </div>
+                    @{
+                        var completionRate = ViewBag.TotalBooks > 0 ? Math.Round((double)ViewBag.CompletedBooks / ViewBag.TotalBooks * 100, 1) : 0;
+                    }
+                    <h3 class="card-title mb-0">@completionRate%</h3>
+                    <p class="card-text">Tỷ lệ hoàn thành</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Biểu đồ và thông tin thêm -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-trophy"></i> Thành tích của bạn</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <div class="achievement-icon">
+                                @if (ViewBag.CompletedBooks >= 10)
+                                {
+                                    <i class="fas fa-medal fa-4x text-warning"></i>
+                                    <h5 class="mt-2">Độc giả chăm chỉ</h5>
+                                    <p class="text-muted">Hoàn thành 10+ sách</p>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-lock fa-4x text-muted"></i>
+                                    <h5 class="mt-2">Độc giả chăm chỉ</h5>
+                                    <p class="text-muted">Cần: 10 sách (còn @(10 - ViewBag.CompletedBooks))</p>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="achievement-icon">
+                                @if (ViewBag.CompletedBooks >= 25)
+                                {
+                                    <i class="fas fa-star fa-4x text-warning"></i>
+                                    <h5 class="mt-2">Đầu sách</h5>
+                                    <p class="text-muted">Hoàn thành 25+ sách</p>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-lock fa-4x text-muted"></i>
+                                    <h5 class="mt-2">Đầu sách</h5>
+                                    <p class="text-muted">Cần: 25 sách</p>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="achievement-icon">
+                                @if (ViewBag.TotalReadingHours >= 50)
+                                {
+                                    <i class="fas fa-crown fa-4x text-warning"></i>
+                                    <h5 class="mt-2">Bậc thầy đọc sách</h5>
+                                    <p class="text-muted">Đọc 50+ giờ</p>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-lock fa-4x text-muted"></i>
+                                    <h5 class="mt-2">Bậc thầy đọc sách</h5>
+                                    <p class="text-muted">Cần: 50 giờ đọc</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Mẹo đọc sách hiệu quả</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-check text-success"></i> Đặt mục tiêu đọc sách hàng ngày</li>
+                        <li class="mb-2"><i class="fas fa-check text-success"></i> Tìm môi trường yên tĩnh để tập trung</li>
+                        <li class="mb-2"><i class="fas fa-check text-success"></i> Ghi chú những điểm quan trọng</li>
+                        <li class="mb-2"><i class="fas fa-check text-success"></i> Chia sẻ suy nghĩ về sách với bạn bè</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+    .achievement-icon {
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+    }
+</style>

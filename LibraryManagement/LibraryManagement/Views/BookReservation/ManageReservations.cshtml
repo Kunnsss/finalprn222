@@ -1,0 +1,585 @@
+﻿@model List<LibraryManagement.Models.BookReservation>
+@{
+    ViewData["Title"] = "Quản lý đặt chỗ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-bell me-2 toast-icon"></i>
+            <strong class="me-auto toast-title">Thông báo</strong>
+            <small class="text-muted">vừa xong</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-calendar-check"></i> Quản lý đặt chỗ sách
+        </h2>
+        <div>
+            <button class="btn btn-outline-primary" onclick="filterReservations('All')">
+                <i class="fas fa-list"></i> Tất cả
+            </button>
+            <button class="btn btn-outline-warning" onclick="filterReservations('Pending')">
+                <i class="fas fa-clock"></i> Đang chờ
+            </button>
+            <button class="btn btn-outline-success" onclick="filterReservations('Ready')">
+                <i class="fas fa-check"></i> Sẵn sàng
+            </button>
+            <button class="btn btn-outline-danger" onclick="filterReservations('Expired')">
+                <i class="fas fa-times"></i> Hết hạn
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Đang chờ</h6>
+                    <h2 class="mb-0">@Model.Count(r => r.Status == "Pending")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Sẵn sàng</h6>
+                    <h2 class="mb-0">@Model.Count(r => r.Status == "Ready")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Đã hoàn thành</h6>
+                    <h2 class="mb-0">@Model.Count(r => r.Status == "Completed")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Hết hạn</h6>
+                    <h2 class="mb-0">@Model.Count(r => r.Status == "Expired")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservations Table -->
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Chưa có đặt chỗ nào trong hệ thống.
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Danh sách đặt chỗ
+                    <span class="badge bg-light text-dark float-end">@Model.Count</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="reservationsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Người đặt</th>
+                                <th>Email</th>
+                                <th>Sách</th>
+                                <th>Ngày đặt</th>
+                                <th>Hết hạn</th>
+                                <th>Đã chờ</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var reservation in Model.OrderByDescending(r => r.ReservationDate))
+                            {
+                                <tr data-status="@reservation.Status">
+                                    <td><strong>#@reservation.ReservationId</strong></td>
+                                    <td>
+                                        <i class="fas fa-user"></i> @reservation.User?.FullName
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">@reservation.User?.Email</small>
+                                    </td>
+                                    <td>
+                                        <strong>@reservation.Book?.Title</strong>
+                                        <br>
+                                        <small class="text-muted">@reservation.Book?.Author</small>
+                                    </td>
+                                    <td>
+                                        <small>@reservation.ReservationDate.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <small class="@(reservation.ExpiryDate < DateTime.Now ? "text-danger fw-bold" : "")">
+                                            @reservation.ExpiryDate.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var waitingDays = (DateTime.Now - reservation.ReservationDate).Days;
+                                        }
+                                        <span class="badge @(waitingDays > 7 ? "bg-danger" : waitingDays > 3 ? "bg-warning" : "bg-info")">
+                                            @waitingDays ngày
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (reservation.Status == "Pending")
+                                        {
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-clock"></i> Đang chờ
+                                            </span>
+                                        }
+                                        else if (reservation.Status == "Ready")
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> Sẵn sàng
+                                            </span>
+                                        }
+                                        else if (reservation.Status == "Completed")
+                                        {
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-check-double"></i> Hoàn thành
+                                            </span>
+                                        }
+                                        else if (reservation.Status == "Cancelled")
+                                        {
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-ban"></i> Đã hủy
+                                            </span>
+                                        }
+                                        else if (reservation.Status == "Expired")
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times"></i> Hết hạn
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            @if (reservation.Status == "Pending")
+                                            {
+                                                <button class="btn btn-success"
+                                                        onclick="markAsReady(@reservation.ReservationId)"
+                                                        title="Đánh dấu sẵn sàng">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn btn-danger"
+                                                        onclick="cancelReservation(@reservation.ReservationId)"
+                                                        title="Hủy đặt chỗ">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            }
+                                            else if (reservation.Status == "Ready")
+                                            {
+                                                <button class="btn btn-info"
+                                                        onclick="markAsCompleted(@reservation.ReservationId)"
+                                                        title="Đánh dấu đã lấy sách">
+                                                    <i class="fas fa-check-double"></i>
+                                                </button>
+                                                <button class="btn btn-warning"
+                                                        onclick="sendReminder(@reservation.ReservationId)"
+                                                        title="Gửi nhắc nhở">
+                                                    <i class="fas fa-bell"></i>
+                                                </button>
+                                            }
+                                            <button class="btn btn-outline-primary"
+                                                    onclick="viewDetails(@reservation.ReservationId)"
+                                                    title="Xem chi tiết">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle"></i> Chi tiết đặt chỗ
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailContent">
+                <!-- Content loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle"></i> <span id="confirmTitle">Xác nhận</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmMessage"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Hủy
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmBtn">
+                    <i class="fas fa-check"></i> Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Reason Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-ban"></i> Hủy đặt chỗ
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="cancelReason" class="form-label">Lý do hủy <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="cancelReason" rows="3" placeholder="Nhập lý do hủy đặt chỗ..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Đóng
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmCancelBtn">
+                    <i class="fas fa-ban"></i> Xác nhận hủy
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .toast {
+            min-width: 300px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .toast-success .toast-header {
+            background-color: #198754;
+            color: white;
+        }
+
+        .toast-error .toast-header {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .toast-warning .toast-header {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .toast-info .toast-header {
+            background-color: #0dcaf0;
+            color: #000;
+        }
+
+        .toast-success .btn-close,
+        .toast-error .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .toast-icon {
+            font-size: 1.1rem;
+        }
+    </style>
+
+    <script>
+        // Toast notification function
+        function showToast(message, type = 'success', title = 'Thông báo') {
+            const toastElement = document.getElementById('notificationToast');
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: 4000
+            });
+
+            // Remove previous type classes
+            toastElement.classList.remove('toast-success', 'toast-error', 'toast-warning', 'toast-info');
+
+            // Add new type class
+            toastElement.classList.add('toast-' + type);
+
+            // Set icon based on type
+            let icon = 'fa-bell';
+            switch(type) {
+                case 'success':
+                    icon = 'fa-check-circle';
+                    break;
+                case 'error':
+                    icon = 'fa-exclamation-circle';
+                    break;
+                case 'warning':
+                    icon = 'fa-exclamation-triangle';
+                    break;
+                case 'info':
+                    icon = 'fa-info-circle';
+                    break;
+            }
+
+            // Update content
+            toastElement.querySelector('.toast-icon').className = `fas ${icon} me-2 toast-icon`;
+            toastElement.querySelector('.toast-title').textContent = title;
+            toastElement.querySelector('.toast-body').textContent = message;
+
+            toast.show();
+        }
+
+        // Confirmation dialog
+        function showConfirmDialog(title, message, onConfirm) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+
+            const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            const confirmBtn = document.getElementById('confirmBtn');
+
+            // Remove old event listeners
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+            // Add new event listener
+            newConfirmBtn.addEventListener('click', () => {
+                modal.hide();
+                onConfirm();
+            });
+
+            modal.show();
+        }
+
+        // Filter reservations by status
+        function filterReservations(status) {
+            const rows = document.querySelectorAll('#reservationsTable tbody tr');
+
+            rows.forEach(row => {
+                if (status === 'All' || row.dataset.status === status) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Mark as ready
+        async function markAsReady(reservationId) {
+            showConfirmDialog(
+                'Đánh dấu sẵn sàng',
+                'Xác nhận sách đã sẵn sàng để người dùng đến lấy?',
+                async () => {
+                    try {
+                        const response = await fetch(`/BookReservation/MarkAsReady/${reservationId}`, {
+                            method: 'POST'
+                        });
+
+                        if (response.ok) {
+                            showToast('Đã đánh dấu sẵn sàng và gửi thông báo cho người dùng!', 'success', 'Thành công');
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showToast('Không thể thực hiện thao tác. Vui lòng thử lại!', 'error', 'Lỗi');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showToast('Đã xảy ra lỗi kết nối. Vui lòng kiểm tra lại!', 'error', 'Lỗi');
+                    }
+                }
+            );
+        }
+
+        // Mark as completed
+        async function markAsCompleted(reservationId) {
+            showConfirmDialog(
+                'Hoàn thành đặt chỗ',
+                'Xác nhận người dùng đã đến lấy sách?',
+                async () => {
+                    try {
+                        const response = await fetch(`/BookReservation/MarkAsCompleted/${reservationId}`, {
+                            method: 'POST'
+                        });
+
+                        if (response.ok) {
+                            showToast('Đã đánh dấu hoàn thành!', 'success', 'Thành công');
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showToast('Không thể thực hiện thao tác. Vui lòng thử lại!', 'error', 'Lỗi');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showToast('Đã xảy ra lỗi kết nối. Vui lòng kiểm tra lại!', 'error', 'Lỗi');
+                    }
+                }
+            );
+        }
+
+        // Cancel reservation
+        let currentReservationId = null;
+
+        function cancelReservation(reservationId) {
+            currentReservationId = reservationId;
+            document.getElementById('cancelReason').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+            modal.show();
+        }
+
+        document.getElementById('confirmCancelBtn').addEventListener('click', async () => {
+            const reason = document.getElementById('cancelReason').value.trim();
+
+            if (!reason) {
+                showToast('Vui lòng nhập lý do hủy!', 'warning', 'Cảnh báo');
+                return;
+            }
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+                const response = await fetch(`/BookReservation/AdminCancel/${currentReservationId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({ reason: reason })
+                });
+
+                const data = await response.json();
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
+                modal.hide();
+
+                if (response.ok) {
+                    showToast('Đã hủy đặt chỗ thành công!', 'success', 'Thành công');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(data.message || 'Có lỗi xảy ra khi hủy đặt chỗ!', 'error', 'Lỗi');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Đã xảy ra lỗi kết nối: ' + error.message, 'error', 'Lỗi');
+            }
+        });
+
+        // Send reminder
+        async function sendReminder(reservationId) {
+            showConfirmDialog(
+                'Gửi nhắc nhở',
+                'Gửi email nhắc nhở người dùng đến lấy sách?',
+                async () => {
+                    try {
+                        const response = await fetch(`/BookReservation/SendReminder/${reservationId}`, {
+                            method: 'POST'
+                        });
+
+                        if (response.ok) {
+                            showToast('Đã gửi email nhắc nhở thành công!', 'success', 'Thành công');
+                        } else {
+                            showToast('Không thể gửi email. Vui lòng thử lại!', 'error', 'Lỗi');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showToast('Đã xảy ra lỗi kết nối. Vui lòng kiểm tra lại!', 'error', 'Lỗi');
+                    }
+                }
+            );
+        }
+
+        // View details
+        function viewDetails(reservationId) {
+            document.getElementById('detailContent').innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Đang tải thông tin...</p>
+                </div>
+            `;
+
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            modal.show();
+
+            // Load details via AJAX
+            fetch(`/BookReservation/GetReservationDetails/${reservationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('detailContent').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-3">
+                                    <i class="fas fa-user"></i> Thông tin người đặt
+                                </h6>
+                                <p><strong>Họ tên:</strong> ${data.userName}</p>
+                                <p><strong>Email:</strong> ${data.userEmail}</p>
+                                <p><strong>Số điện thoại:</strong> ${data.userPhone || 'Chưa cập nhật'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-3">
+                                    <i class="fas fa-book"></i> Thông tin sách
+                                </h6>
+                                <p><strong>Tên sách:</strong> ${data.bookTitle}</p>
+                                <p><strong>Tác giả:</strong> ${data.bookAuthor}</p>
+                                <p><strong>Số lượng có sẵn:</strong> <span class="badge bg-info">${data.availableQuantity}</span></p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-muted mb-3">
+                                    <i class="fas fa-info-circle"></i> Thông tin đặt chỗ
+                                </h6>
+                                <p><strong>Ngày đặt:</strong> ${new Date(data.reservationDate).toLocaleString('vi-VN')}</p>
+                                <p><strong>Hết hạn:</strong> ${new Date(data.expiryDate).toLocaleString('vi-VN')}</p>
+                                <p><strong>Trạng thái:</strong> <span class="badge bg-primary">${data.status}</span></p>
+                                ${data.notifiedDate ? `<p><strong>Đã thông báo:</strong> ${new Date(data.notifiedDate).toLocaleString('vi-VN')}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    document.getElementById('detailContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Không thể tải thông tin chi tiết!
+                        </div>
+                    `;
+                    console.error('Error loading details:', error);
+                });
+        }
+
+        // Auto refresh every 30 seconds
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+}

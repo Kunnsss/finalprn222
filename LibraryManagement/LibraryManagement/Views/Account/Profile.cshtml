@@ -1,0 +1,257 @@
+﻿@model LibraryManagement.Models.User
+@{
+    ViewData["Title"] = "Thông tin cá nhân";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* ===== PROFILE CONTAINER ===== */
+    .profile-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px 0;
+        margin-top: -20px;
+        margin-bottom: 30px;
+    }
+
+    .profile-header {
+        text-align: center;
+        color: white;
+    }
+
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 48px;
+        font-weight: bold;
+        color: #667eea;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        position: relative;
+    }
+
+    .profile-avatar-badge {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 30px;
+        height: 30px;
+        background: #28a745;
+        border: 3px solid white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .profile-name {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .profile-role {
+        font-size: 16px;
+        opacity: 0.9;
+    }
+
+    /* ===== INFO CARDS ===== */
+    .info-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+        .info-card .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        .info-card .card-body {
+            padding: 25px;
+        }
+
+    .info-row {
+        display: flex;
+        padding: 15px 0;
+        border-bottom: 1px solid #f0f0f0;
+        align-items: center;
+    }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        width: 150px;
+        display: flex;
+        align-items: center;
+    }
+
+        .info-label i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+            color: #667eea;
+        }
+
+    .info-value {
+        flex: 1;
+        color: #212529;
+    }
+
+    /* ===== STATUS BADGE ===== */
+    .status-badge {
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+</style>
+
+<!-- ===== PROFILE HEADER ===== -->
+<div class="profile-container">
+    <div class="container">
+        <div class="profile-header">
+
+            <div class="profile-avatar">
+                @(string.IsNullOrEmpty(Model.FullName)
+                                ? "U"
+                                : Model.FullName.Substring(0, 1).ToUpper())
+
+                <div class="profile-avatar-badge">
+                    <i class="fas fa-check" style="color:white"></i>
+                </div>
+            </div>
+
+            <h1 class="profile-name">@Model.FullName</h1>
+
+            <p class="profile-role">
+                <i class="fas fa-id-badge me-2"></i>
+                @{
+                    var roleName = Model.Role?.RoleName;
+                }
+                @(roleName == "Admin" ? "Quản trị viên"
+                                : roleName == "Librarian" ? "Thủ thư"
+                                : "Độc giả")
+            </p>
+
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+
+        <!-- ===== PERSONAL INFO ===== -->
+        <div class="col-md-8 mb-4">
+            <div class="card info-card">
+                <div class="card-header">
+                    <i class="fas fa-user me-2"></i> Thông tin cá nhân
+                </div>
+                <div class="card-body">
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-user"></i> Họ và tên
+                        </div>
+                        <div class="info-value">@Model.FullName</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-envelope"></i> Email
+                        </div>
+                        <div class="info-value">@Model.Email</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-phone"></i> Số điện thoại
+                        </div>
+                        <div class="info-value">
+                            @(string.IsNullOrEmpty(Model.PhoneNumber)
+                                                        ? "Chưa cập nhật"
+                                                        : Model.PhoneNumber)
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-map-marker-alt"></i> Địa chỉ
+                        </div>
+                        <div class="info-value">
+                            @(string.IsNullOrEmpty(Model.Address)
+                                                        ? "Chưa cập nhật"
+                                                        : Model.Address)
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ACCOUNT INFO ===== -->
+        <div class="col-md-4 mb-4">
+            <div class="card info-card">
+                <div class="card-header">
+                    <i class="fas fa-shield-alt me-2"></i> Tài khoản
+                </div>
+                <div class="card-body">
+
+                    <div class="info-row">
+                        <div class="info-label">Username</div>
+                        <div class="info-value">@Model.Username</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">User ID</div>
+                        <div class="info-value">#@Model.UserId</div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">Ngày tạo</div>
+                        <div class="info-value">
+                            @Model.CreatedDate.ToString("dd/MM/yyyy")
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">Trạng thái</div>
+                        <div class="info-value">
+                            @if (Model.IsActive)
+                            {
+                                <span class="status-badge active">Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge inactive">Bị khóa</span>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

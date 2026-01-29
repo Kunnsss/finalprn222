@@ -1,0 +1,78 @@
+﻿<!-- Views/Rentals/Rent.cshtml -->
+@model LibraryManagement.ViewModels.RentalViewModel
+@{
+    ViewData["Title"] = "Thuê sách";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-shopping-cart"></i> Thuê sách vật lý</h4>
+            </div>
+            <div class="card-body">
+                <h5 class="mb-3">@Model.BookTitle</h5>
+
+                <form asp-action="Rent" method="post">
+                    <input type="hidden" asp-for="BookId" />
+                    <input type="hidden" asp-for="BookTitle" />
+                    <input type="hidden" asp-for="RentalPrice" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Giá thuê/ngày</label>
+                        <input type="text" class="form-control" value="@Model.RentalPrice.ToString("N0") VND" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="RentalDays" class="form-label">Số ngày thuê</label>
+                        <input asp-for="RentalDays" class="form-control" type="number" min="1" max="90" value="7" id="rentalDays" />
+                        <span asp-validation-for="RentalDays" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ngày trả dự kiến</label>
+                        <input type="text" class="form-control" id="dueDate" readonly />
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>Tổng tiền:</strong> <span id="totalAmount">0</span> VND
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Lưu ý:</strong> Nếu trả sách trễ sẽ bị phạt 5,000 VND/ngày (tối đa 500,000 VND)
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> Xác nhận thuê
+                        </button>
+                        <a asp-controller="Books" asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const rentalPrice = @Model.RentalPrice;
+
+        function updateTotal() {
+            const days = parseInt(document.getElementById('rentalDays').value) || 0;
+            const total = days * rentalPrice;
+            document.getElementById('totalAmount').textContent = total.toLocaleString('vi-VN');
+
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + days);
+            document.getElementById('dueDate').value = dueDate.toLocaleDateString('vi-VN');
+        }
+
+        document.getElementById('rentalDays').addEventListener('input', updateTotal);
+        updateTotal();
+    </script>
+}

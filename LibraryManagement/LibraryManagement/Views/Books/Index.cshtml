@@ -1,0 +1,219 @@
+﻿@model IEnumerable<LibraryManagement.Models.Book>
+@{
+    ViewData["Title"] = "Danh sách sách";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="fas fa-book"></i> Danh sách sách</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
+        {
+            <a asp-action="Create" class="btn btn-success">
+                <i class="fas fa-plus"></i> Thêm sách
+            </a>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-3">
+            <div class="col-md-5">
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Tìm theo tên sách hoặc tác giả..." />
+            </div>
+            <div class="col-md-4">
+                <select name="categoryId" class="form-select">
+                    <option value="">-- Tất cả thể loại --</option>
+                    @if (ViewBag.Categories != null)
+                    {
+                        foreach (var category in ViewBag.Categories as List<LibraryManagement.Models.Category>)
+                        {
+                            var selectedValue = ViewBag.CategoryId != null ? ViewBag.CategoryId.ToString() : "";
+                            var isSelected = category.CategoryId.ToString() == selectedValue;
+                            if (isSelected)
+                            {
+                                <option value="@category.CategoryId" selected>@category.CategoryName</option>
+                            }
+                            else
+                            {
+                                <option value="@category.CategoryId">@category.CategoryName</option>
+                            }
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Tìm kiếm
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    @foreach (var book in Model)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                @if (!string.IsNullOrEmpty(book.CoverImage))
+                {
+                    <img src="@book.CoverImage" class="card-img-top" alt="@book.Title" style="height: 250px; object-fit: cover;">
+                }
+                else
+                {
+                    <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 250px;">
+                        <i class="fas fa-book fa-5x text-white"></i>
+                    </div>
+                }
+
+                <div class="card-body">
+                    <h5 class="card-title">@book.Title</h5>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            <i class="fas fa-user"></i> @book.Author
+                            <br />
+                            @if (book.Category != null)
+                            {
+                                <i class="fas fa-tag"></i>
+                                @book.Category.CategoryName
+                                <br />
+                            }
+                            @if (book.IsPhysical)
+                            {
+                                <i class="fas fa-book"></i>
+                                <strong>Sách vật lý</strong>
+                                <br />
+                                <i class="fas fa-box"></i>
+                                <span class="@(book.AvailableQuantity > 0 ? "text-success" : "text-danger")">
+                                    Còn lại: @book.AvailableQuantity/@book.Quantity
+                                </span>
+                                <br />
+                                <i class="fas fa-money-bill"></i>
+                                <text>Giá thuê: @book.RentalPrice.ToString("N0") VND/ngày</text>
+                            }
+                            else
+                            {
+                                <i class="fas fa-laptop"></i>
+                                <strong>Sách online</strong>
+                                <br />
+                                <i class="fas fa-money-bill"></i>
+                                <text>Giá: @(book.OnlinePrice != null ? book.OnlinePrice.Value.ToString("N0") : "0") VND</text>
+                            }
+                        </small>
+                    </p>
+                </div>
+
+                <div class="card-footer bg-transparent">
+                    <div class="d-grid gap-2">
+                        <a asp-action="Details" asp-route-id="@book.BookId" class="btn btn-primary btn-sm">
+                            <i class="fas fa-info-circle"></i> Chi tiết
+                        </a>
+
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            if (book.IsPhysical)
+                            {
+                                if (book.AvailableQuantity > 0)
+                                {
+                                    <a asp-controller="Rentals" asp-action="Rent" asp-route-bookId="@book.BookId" class="btn btn-success btn-sm">
+                                        <i class="fas fa-shopping-cart"></i> Thuê sách
+                                    </a>
+                                }
+                                else
+                                {
+                                    <!-- Hết sách - Hiển thị nút đặt chỗ -->
+                                    <form asp-controller="BookReservation" asp-action="Reserve" method="post" class="d-inline">
+                                        <input type="hidden" name="bookId" value="@book.BookId" />
+                                        <button type="submit" class="btn btn-warning btn-sm w-100">
+                                            <i class="fas fa-bookmark"></i> Đặt chỗ
+                                        </button>
+                                    </form>
+                                    <small class="text-muted d-block mt-1 text-center">
+                                        <i class="fas fa-info-circle"></i> Hết sách - Đặt chỗ để được ưu tiên
+                                    </small>
+                                }
+                            }
+                            else
+                            {
+                                <a asp-controller="OnlineRentals" asp-action="RentOnline" asp-route-bookId="@book.BookId" class="btn btn-info btn-sm">
+                                    <i class="fas fa-download"></i> Thuê Online
+                                </a>
+                            }
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-sign-in-alt"></i> Đăng nhập để thuê
+                            </a>
+                        }
+
+                        @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
+                        {
+                            <div class="btn-group btn-group-sm">
+                                <a asp-action="Edit" asp-route-id="@book.BookId" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i> Sửa
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@book.BookId" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Xóa
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle"></i> Không tìm thấy sách nào.
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Hiển thị thông báo từ TempData
+        @if (TempData["SuccessMessage"] != null)
+        {
+                    <text>
+                    showToast('@TempData["SuccessMessage"]', 'success');
+                    </text>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+                    <text>
+                    showToast('@TempData["ErrorMessage"]', 'error');
+                    </text>
+        }
+
+        function showToast(message, type) {
+            const bgColor = type === 'success' ? '#28a745' : '#dc3545';
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                z-index: 9999;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            `;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+    </script>
+}

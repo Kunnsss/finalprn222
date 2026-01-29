@@ -1,0 +1,738 @@
+@using LibraryManagement.Models
+@model List<SupportChat>
+@{
+    ViewData["Title"] = "Quản lý Chat hỗ trợ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* ===== DANH SÁCH TIN NHẮN ===== */
+    .chat-user-item {
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+        .chat-user-item:hover {
+            background-color: #f8f9fa !important;
+        }
+
+        .chat-user-item.active-chat {
+            background-color: #e3f2fd !important;
+            border-left: 4px solid #0d6efd !important;
+        }
+
+        .chat-user-item.unread-item {
+            background-color: #fff8e1 !important;
+        }
+
+            .chat-user-item.unread-item:hover {
+                background-color: #fff3cd !important;
+            }
+
+    /* Avatar Circle */
+    .user-avatar {
+        position: relative;
+    }
+
+    .avatar-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: bold;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .unread-dot {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        background-color: #dc3545;
+        border: 2px solid white;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%
+
+    {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+
+    }
+
+    .user-name {
+        font-size: 15px;
+        color: #212529;
+    }
+
+    .message-preview {
+        font-size: 13px;
+        color: #6c757d;
+        line-height: 1.4;
+    }
+
+    /* ===== KHU VỰC CHAT ===== */
+    .chat-container {
+        background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+        padding: 20px;
+    }
+
+    .message-wrapper {
+        display: flex;
+        animation: slideIn 0.3s ease;
+    }
+
+    @@keyframes slideIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .user-message {
+        justify-content: flex-start;
+    }
+
+    .admin-message {
+        justify-content: flex-end;
+    }
+
+    .message-bubble {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        position: relative;
+    }
+
+    .user-message .message-bubble {
+        border-bottom-left-radius: 4px;
+    }
+
+    .admin-message .message-bubble {
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-time {
+        font-size: 11px;
+        margin-top: 4px;
+    }
+
+    .admin-message .message-time {
+        color: rgba(255,255,255,0.8);
+    }
+
+    /* Input Area */
+    #replyInput {
+        border-radius: 25px;
+        padding: 12px 20px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+        #replyInput:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13,110,253,.15);
+        }
+
+    #btnSendReply {
+        border-radius: 25px;
+        padding: 8px 24px;
+        font-weight: 500;
+    }
+
+    /* Scrollbar Styling */
+    #chatList::-webkit-scrollbar,
+    #chatMessages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #chatList::-webkit-scrollbar-track,
+    #chatMessages::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    #chatList::-webkit-scrollbar-thumb,
+    #chatMessages::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+        #chatList::-webkit-scrollbar-thumb:hover,
+        #chatMessages::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+    /* Loading spinner */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @@keyframes spin {
+        to
+
+    {
+        transform: rotate(360deg);
+    }
+
+    }</style>
+
+<div class="container-fluid">
+    <h2 class="mb-4">
+        <i class="fas fa-headset"></i> Quản lý Chat hỗ trợ
+    </h2>
+
+    <div class="row">
+        <!-- Danh sách tin nhắn chưa đọc -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-inbox"></i> Tin nhắn mới
+                        <span class="badge bg-danger" id="unreadCount">0</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0" style="height: 600px; overflow-y: auto;">
+                    <div id="chatList">
+                        <!-- Danh sách sẽ được load động từ API -->
+                        <div class="text-center text-muted p-5">
+                            <div class="loading-spinner" style="border-color: #6c757d; border-top-color: #0d6efd;"></div>
+                            <p class="mt-3">Đang tải danh sách...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khu vực chat -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0" id="chatHeader">
+                        <i class="fas fa-comments"></i> Chọn một cuộc trò chuyện
+                    </h5>
+                </div>
+                <div class="card-body chat-container" style="height: 500px; overflow-y: auto;" id="chatMessages">
+                    <div class="text-center text-muted mt-5">
+                        <i class="fas fa-comments fa-3x mb-3 opacity-50"></i>
+                        <p>Vui lòng chọn một cuộc trò chuyện bên trái</p>
+                    </div>
+                </div>
+                <div class="card-footer bg-white" id="chatFooter" style="display: none;">
+                    <div class="input-group">
+                        <input type="text" class="form-control border-end-0" id="replyInput" placeholder="Nhập tin nhắn..." />
+                        <button class="btn btn-primary px-4" id="btnSendReply">
+                            <i class="fas fa-paper-plane"></i> Gửi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        console.log('=== MANAGE CHATS PAGE LOADED ===');
+
+        let currentUserId = null;
+        let currentUserName = null;
+        let chatListData = []; // Lưu danh sách chat để tái sử dụng
+        let isRestoringChat = false; // Flag để tránh reload loop
+        let chatListLoaded = false; // Flag để biết đã load lần đầu chưa
+
+        // ĐỔI TÊN BIẾN để tránh xung đột với _Layout.cshtml
+        const chatConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/libraryHub")
+            .build();
+
+        // Nhận tin nhắn mới từ user
+        chatConnection.on("ReceiveUserMessage", function(data) {
+            console.log('Received user message:', data);
+
+            // Thêm vào danh sách nếu đang chat với user này
+            if (currentUserId && currentUserId == data.userId) {
+                addMessageToChat(data.message, true, data.userName, data.timestamp);
+            }
+
+            // Reload lại danh sách để cập nhật badge và tin nhắn mới nhất
+            loadChatList();
+
+            // Hiển thị toast notification
+            showToast(`Tin nhắn mới từ ${data.userName}`, 'info');
+        });
+
+        chatConnection.start()
+            .then(() => {
+                console.log('Chat SignalR connected');
+                // Load danh sách chat ngay khi kết nối
+                loadChatList();
+            })
+            .catch(err => console.error('Chat SignalR connection error:', err));
+
+        // Load danh sách cuộc trò chuyện từ API
+        async function loadChatList() {
+            console.log('=== LOADING CHAT LIST ===');
+
+            try {
+                const response = await fetch('/Support/GetAllChats');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Chat list loaded:', data);
+
+                if (data.success && data.chats) {
+                    chatListData = data.chats;
+                    renderChatList(data.chats);
+                    updateUnreadCount(data.chats);
+
+                    // Chỉ khôi phục cuộc trò chuyện lần đầu tiên load
+                    if (!chatListLoaded) {
+                        chatListLoaded = true;
+                        restoreLastChat();
+                    }
+                } else {
+                    console.error('Failed to load chat list:', data.message);
+                    showEmptyChatList();
+                }
+
+            } catch (error) {
+                console.error('Error loading chat list:', error);
+                showEmptyChatList();
+            }
+        }
+
+        // Render danh sách chat
+        function renderChatList(chats) {
+            const chatListDiv = document.getElementById('chatList');
+
+            if (!chats || chats.length === 0) {
+                showEmptyChatList();
+                return;
+            }
+
+            // Group by userId và lấy tin nhắn mới nhất
+            const groupedChats = {};
+            chats.forEach(chat => {
+                if (!groupedChats[chat.userId] || new Date(chat.sentDate) > new Date(groupedChats[chat.userId].sentDate)) {
+                    groupedChats[chat.userId] = chat;
+                }
+            });
+
+            let html = '';
+            Object.values(groupedChats).sort((a, b) => new Date(b.sentDate) - new Date(a.sentDate)).forEach(chat => {
+                const unreadCount = chats.filter(c => c.userId === chat.userId && !c.isRead && c.isFromUser).length;
+                const userName = chat.userName || `Người dùng #${chat.userId}`;
+                const userInitial = userName.substring(0, 1).toUpperCase();
+
+                // Tính thời gian
+                const sentDate = new Date(chat.sentDate);
+                const now = new Date();
+                const diffMinutes = Math.floor((now - sentDate) / 60000);
+                let timeText = '';
+
+                if (diffMinutes < 1) {
+                    timeText = 'Vừa xong';
+                } else if (diffMinutes < 60) {
+                    timeText = `${diffMinutes} phút trước`;
+                } else if (diffMinutes < 1440) {
+                    const hours = Math.floor(diffMinutes / 60);
+                    timeText = `${hours} giờ trước`;
+                } else {
+                    const days = Math.floor(diffMinutes / 1440);
+                    timeText = `${days} ngày trước`;
+                }
+
+                const isActive = currentUserId == chat.userId ? 'active-chat' : '';
+                const unreadClass = unreadCount > 0 ? 'unread-item' : '';
+
+                html += `
+                    <div class="chat-user-item p-3 border-bottom ${unreadClass} ${isActive}"
+                         style="cursor: pointer;"
+                         data-user-id="${chat.userId}"
+                         data-user-name="${userName}">
+                        <div class="d-flex align-items-center">
+                            <div class="user-avatar me-3">
+                                <div class="avatar-circle">
+                                    ${userInitial}
+                                </div>
+                                ${unreadCount > 0 ? '<span class="unread-dot"></span>' : ''}
+                            </div>
+
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="user-name">${userName}</strong>
+                                    ${unreadCount > 0 ? `<span class="badge bg-danger rounded-pill">${unreadCount}</span>` : ''}
+                                </div>
+                                <div class="message-preview text-truncate">
+                                    ${chat.isFromUser ? '<i class="fas fa-user text-muted me-1"></i>' : '<i class="fas fa-reply text-primary me-1"></i>'}
+                                    ${escapeHtml(chat.message)}
+                                </div>
+                                <small class="text-muted d-flex align-items-center mt-1">
+                                    <i class="far fa-clock me-1"></i>
+                                    ${timeText}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            chatListDiv.innerHTML = html;
+
+            // Gắn sự kiện click cho các item
+            attachChatItemEvents();
+        }
+
+        function showEmptyChatList() {
+            const chatListDiv = document.getElementById('chatList');
+            chatListDiv.innerHTML = `
+                <div class="text-center text-muted p-5">
+                    <i class="fas fa-inbox fa-4x mb-3 opacity-25"></i>
+                    <p>Chưa có tin nhắn nào</p>
+                </div>
+            `;
+        }
+
+        function updateUnreadCount(chats) {
+            const unreadCount = chats.filter(c => !c.isRead && c.isFromUser).length;
+            document.getElementById('unreadCount').textContent = unreadCount;
+        }
+
+        // Gắn sự kiện click cho các item chat
+        function attachChatItemEvents() {
+            const chatUserItems = document.querySelectorAll('.chat-user-item');
+            console.log('Attaching events to', chatUserItems.length, 'items');
+
+            chatUserItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const userId = parseInt(this.getAttribute('data-user-id'));
+                    const userName = this.getAttribute('data-user-name');
+                    console.log('Clicked on user item, userId:', userId, 'userName:', userName);
+
+                    // Highlight item được chọn
+                    chatUserItems.forEach(i => i.classList.remove('active-chat'));
+                    this.classList.add('active-chat');
+
+                    loadUserChat(userId, userName);
+                });
+            });
+        }
+
+        // Load chat của một user
+        async function loadUserChat(userId, userName, skipReload = false) {
+            console.log('=== LOADING USER CHAT ===');
+            console.log('UserId:', userId);
+            console.log('UserName:', userName);
+
+            currentUserId = userId;
+            currentUserName = userName;
+
+            // Lưu vào localStorage để khôi phục sau khi reload
+            localStorage.setItem('lastChatUserId', userId);
+            localStorage.setItem('lastChatUserName', userName);
+
+            try {
+                const response = await fetch(`/Support/GetUserChats?userId=${userId}`);
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+
+                if (data.success && data.chats) {
+                    displayChats(data.chats, userId, userName);
+
+                    // Mark as read
+                    const markReadResponse = await fetch(`/Support/MarkChatAsRead?userId=${userId}`, {
+                        method: 'POST'
+                    });
+                    const markReadResult = await markReadResponse.json();
+                    console.log('Mark as read response:', markReadResult);
+
+                    // Chỉ reload danh sách nếu không phải đang restore
+                    if (!skipReload) {
+                        loadChatList();
+                    }
+                } else {
+                    console.error('API error:', data.message);
+                    alert('Không thể tải tin nhắn: ' + (data.message || 'Lỗi không xác định'));
+                }
+
+            } catch (error) {
+                console.error('Error loading chat:', error);
+                alert('Có lỗi khi tải tin nhắn. Vui lòng kiểm tra console và thử lại.');
+            }
+        }
+
+        // Khôi phục cuộc trò chuyện cuối cùng sau khi reload
+        function restoreLastChat() {
+            const lastUserId = localStorage.getItem('lastChatUserId');
+            const lastUserName = localStorage.getItem('lastChatUserName');
+
+            if (lastUserId && lastUserName) {
+                console.log('Restoring last chat:', lastUserId, lastUserName);
+
+                // Tìm và highlight item tương ứng
+                const chatItems = document.querySelectorAll('.chat-user-item');
+                chatItems.forEach(item => {
+                    if (item.getAttribute('data-user-id') == lastUserId) {
+                        item.classList.add('active-chat');
+                    }
+                });
+
+                // Load lại cuộc trò chuyện (với skipReload = true để tránh loop)
+                loadUserChat(parseInt(lastUserId), lastUserName, true);
+            }
+        }
+
+        function displayChats(chats, userId, userName) {
+            console.log('=== DISPLAYING CHATS ===');
+            console.log('Number of chats:', chats.length);
+            console.log('Chats data:', chats);
+
+            const chatDiv = document.getElementById('chatMessages');
+            const displayName = userName || (chats.length > 0 ? (chats[0].userName || `Người dùng #${userId}`) : `Người dùng #${userId}`);
+
+            document.getElementById('chatHeader').innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-user-circle fa-lg me-2"></i>
+                    <span>${displayName}</span>
+                </div>
+            `;
+            document.getElementById('chatFooter').style.display = 'block';
+
+            if (chats.length === 0) {
+                chatDiv.innerHTML = '<div class="text-center text-muted mt-5"><i class="fas fa-inbox fa-3x mb-3 opacity-25"></i><p>Chưa có tin nhắn nào</p></div>';
+                return;
+            }
+
+            let html = '';
+            chats.forEach(chat => {
+                const time = new Date(chat.sentDate).toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                if (chat.isFromUser) {
+                    html += `
+                        <div class="message-wrapper user-message mb-3">
+                            <div class="message-bubble bg-light">
+                                <p class="mb-1">${escapeHtml(chat.message)}</p>
+                                <div class="message-time text-muted">
+                                    <small><i class="far fa-clock"></i> ${time}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="message-wrapper admin-message mb-3">
+                            <div class="message-bubble bg-primary text-white">
+                                <p class="mb-1">${escapeHtml(chat.message)}</p>
+                                <div class="message-time">
+                                    <small><i class="far fa-clock"></i> ${time}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            chatDiv.innerHTML = html;
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+
+            console.log('Chat display completed');
+        }
+
+        async function sendReply() {
+            console.log('=== SENDING REPLY ===');
+
+            if (!currentUserId) {
+                alert('Vui lòng chọn một cuộc trò chuyện trước');
+                return;
+            }
+
+            const input = document.getElementById('replyInput');
+            const message = input.value.trim();
+
+            console.log('Current UserId:', currentUserId);
+            console.log('Message:', message);
+
+            if (!message) {
+                alert('Vui lòng nhập nội dung phản hồi');
+                return;
+            }
+
+            try {
+                // 1. Lưu vào database
+                const response = await fetch('/Support/SendLibrarianReply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        message: message
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Save reply result:', result);
+
+                if (!result.success) {
+                    alert('Lỗi khi lưu phản hồi: ' + result.message);
+                    return;
+                }
+
+                // 2. Hiển thị tin nhắn
+                addMessageToChat(message, false, 'Bạn', new Date());
+                input.value = '';
+
+                // 3. Gửi qua SignalR
+                try {
+                    await chatConnection.invoke("SendLibrarianReply", currentUserId.toString(), message);
+                    console.log('Sent via SignalR successfully');
+                } catch (err) {
+                    console.log('SignalR send failed (but message saved):', err);
+                }
+
+                showToast('Đã gửi phản hồi thành công', 'success');
+
+            } catch (err) {
+                console.error('Lỗi gửi phản hồi:', err);
+                alert('Có lỗi khi gửi phản hồi: ' + err.message);
+            }
+        }
+
+        function addMessageToChat(message, isFromUser, sender, timestamp) {
+            const chatDiv = document.getElementById('chatMessages');
+            const time = new Date(timestamp).toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const messageHtml = isFromUser ? `
+                <div class="message-wrapper user-message mb-3">
+                    <div class="message-bubble bg-light">
+                        <p class="mb-1">${escapeHtml(message)}</p>
+                        <div class="message-time text-muted">
+                            <small><i class="far fa-clock"></i> ${time}</small>
+                        </div>
+                    </div>
+                </div>
+            ` : `
+                <div class="message-wrapper admin-message mb-3">
+                    <div class="message-bubble bg-primary text-white">
+                        <p class="mb-1">${escapeHtml(message)}</p>
+                        <div class="message-time">
+                            <small><i class="far fa-clock"></i> ${time}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            chatDiv.insertAdjacentHTML('beforeend', messageHtml);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message, type) {
+            const bgColor = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8';
+            const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                z-index: 9999;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            `;
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        // ==========================================
+        // KHỞI TẠO - Gắn event cho nút gửi
+        // ==========================================
+        (function initializeChatPage() {
+            console.log('=== INITIALIZING CHAT PAGE ===');
+
+            // Gắn sự kiện cho nút gửi
+            const btnSendReply = document.getElementById('btnSendReply');
+            if (btnSendReply) {
+                btnSendReply.addEventListener('click', sendReply);
+                console.log('Send button listener attached');
+            }
+
+            // Enter để gửi
+            const replyInput = document.getElementById('replyInput');
+            if (replyInput) {
+                replyInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        sendReply();
+                    }
+                });
+                console.log('Reply input listener attached');
+            }
+
+            console.log('=== CHAT PAGE INITIALIZED SUCCESSFULLY ===');
+        })();
+
+        // Auto refresh chat list every 30 seconds
+        setInterval(loadChatList, 30000);
+    </script>
+}

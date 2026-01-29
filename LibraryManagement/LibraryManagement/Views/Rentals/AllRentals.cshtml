@@ -1,0 +1,594 @@
+﻿@model LibraryManagement.Models.AllRentalsViewModel
+@{
+    ViewData["Title"] = "Quản lý thuê sách";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Custom alert styling */
+    .alert {
+        border-left: 4px solid;
+        border-radius: 8px;
+        animation: slideInDown 0.3s ease-out;
+    }
+
+    .alert-success {
+        border-left-color: #198754;
+        background-color: #d1e7dd;
+    }
+
+    .alert-danger {
+        border-left-color: #dc3545;
+        background-color: #f8d7da;
+    }
+
+    .alert-info {
+        border-left-color: #0dcaf0;
+        background-color: #cff4fc;
+    }
+
+    .alert .alert-heading {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    @@keyframes slideInDown {
+        from {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Fade out animation */
+    .alert.fade-out {
+        animation: fadeOut 0.5s ease-out forwards;
+    }
+
+    @@keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+    }
+
+    /* Card shadow improvements */
+    .card.shadow-sm {
+        box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+
+    /* Table improvements */
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+        transition: background-color 0.2s ease;
+    }
+
+    /* Custom confirmation modal */
+    .custom-confirm-modal .modal-content {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+
+    .custom-confirm-modal .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        border: none;
+    }
+
+    .custom-confirm-modal .modal-body {
+        padding: 30px;
+        font-size: 1.1rem;
+    }
+
+    .custom-confirm-modal .btn-custom-confirm {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 10px 30px;
+        border-radius: 25px;
+        color: white;
+        font-weight: 600;
+    }
+
+    .custom-confirm-modal .btn-custom-cancel {
+        background: #6c757d;
+        border: none;
+        padding: 10px 30px;
+        border-radius: 25px;
+        color: white;
+        font-weight: 600;
+    }
+</style>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="fas fa-clipboard-list"></i> Quản lý tất cả giao dịch thuê sách</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a asp-action="OverdueRentals" class="btn btn-danger">
+            <i class="fas fa-exclamation-triangle"></i> Sách quá hạn
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    var message = TempData["SuccessMessage"].ToString();
+    // Loại bỏ localhost URLs khỏi thông báo
+    message = System.Text.RegularExpressions.Regex.Replace(message, @"https?://localhost:\d+[^\s]*", "");
+    message = message.Trim();
+
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-check-circle fa-2x me-3"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading mb-1">Thành công!</h5>
+                <p class="mb-0">@message</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    var message = TempData["ErrorMessage"].ToString();
+    // Loại bỏ localhost URLs khỏi thông báo
+    message = System.Text.RegularExpressions.Regex.Replace(message, @"https?://localhost:\d+[^\s]*", "");
+    message = message.Trim();
+
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-circle fa-2x me-3"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading mb-1">Có lỗi xảy ra!</h5>
+                <p class="mb-0">@message</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
+@if (TempData["InfoMessage"] != null)
+{
+    var message = TempData["InfoMessage"].ToString();
+    // Loại bỏ localhost URLs khỏi thông báo
+    message = System.Text.RegularExpressions.Regex.Replace(message, @"https?://localhost:\d+[^\s]*", "");
+    message = message.Trim();
+
+    <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+        <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle fa-2x me-3"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading mb-1">Thông báo</h5>
+                <p class="mb-0">@message</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
+<!-- Custom Confirmation Modal -->
+<div class="modal fade custom-confirm-modal" id="confirmReturnModal" tabindex="-1" aria-labelledby="confirmReturnModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmReturnModalLabel">
+                    <i class="fas fa-question-circle"></i> Xác nhận nhận sách trả về
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-book-reader fa-3x text-primary mb-3"></i>
+                <p class="mb-0">Bạn có chắc chắn đã nhận sách trả về?</p>
+                <small class="text-muted">Hành động này không thể hoàn tác</small>
+            </div>
+            <div class="modal-footer justify-content-center border-0">
+                <button type="button" class="btn btn-custom-cancel" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Hủy
+                </button>
+                <button type="button" class="btn btn-custom-confirm" id="confirmReturnBtn">
+                    <i class="fas fa-check"></i> Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="rentalTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="offline-tab" data-bs-toggle="tab" data-bs-target="#offline" type="button">
+            <i class="fas fa-book"></i> Thuê trực tiếp (@Model.OfflineRentals.Count())
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="online-tab" data-bs-toggle="tab" data-bs-target="#online" type="button">
+            <i class="fas fa-cloud"></i> Thuê online (@Model.OnlineRentals.Count())
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="rentalTabContent">
+    <!-- Tab: Thuê trực tiếp -->
+    <div class="tab-pane fade show active" id="offline" role="tabpanel">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-book"></i> Giao dịch thuê trực tiếp</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.OfflineRentals.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Mã GD</th>
+                                    <th>Người thuê</th>
+                                    <th>Sách</th>
+                                    <th>Ngày thuê</th>
+                                    <th>Hạn trả</th>
+                                    <th>Ngày trả</th>
+                                    <th>Số ngày</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Phí phạt</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var rental in Model.OfflineRentals)
+                                {
+                                    var isReturned = rental.Status == "Returned" || rental.ReturnDate.HasValue;
+                                    var isOverdue = !isReturned && rental.DueDate < DateTime.Now;
+                                    var rowClass = isOverdue ? "table-danger" : (isReturned ? "" : "table-warning");
+
+                                    <tr class="@rowClass">
+                                        <td><strong>#@rental.TransactionId</strong></td>
+                                        <td>
+                                            <i class="fas fa-user"></i> @rental.User?.FullName
+                                            <br />
+                                            <small class="text-muted">@rental.User?.Email</small>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-book"></i> @rental.Book?.Title
+                                            <br />
+                                            <small class="text-muted">@rental.Book?.Author</small>
+                                        </td>
+                                        <td>
+                                            <i class="far fa-calendar-alt"></i>
+                                            @rental.RentalDate.ToString("dd/MM/yyyy")
+                                            <br />
+                                            <small class="text-muted">@rental.RentalDate.ToString("HH:mm")</small>
+                                        </td>
+                                        <td>
+                                            <i class="far fa-calendar-check"></i>
+                                            @rental.DueDate.ToString("dd/MM/yyyy")
+                                            @if (isOverdue)
+                                            {
+                                                <br />
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-triangle"></i> Quá hạn
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (rental.ReturnDate.HasValue)
+                                            {
+                                                <i class="far fa-calendar-times"></i>
+                                                @rental.ReturnDate.Value.ToString("dd/MM/yyyy")
+                                                <br />
+                                                <small class="text-muted">@rental.ReturnDate.Value.ToString("HH:mm")</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Chưa trả</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (rental.RentalDays > 0)
+                                            {
+                                                <span class="badge bg-info">@rental.RentalDays ngày</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">@rental.TotalAmount.ToString("N0") đ</strong>
+                                        </td>
+                                        <td>
+                                            @if (rental.LateFee > 0)
+                                            {
+                                                <strong class="text-danger">@rental.LateFee.ToString("N0") đ</strong>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 đ</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (rental.Status == "Returned")
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> Đã trả
+                                                </span>
+                                            }
+                                            else if (isOverdue)
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-clock"></i> Quá hạn
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-hourglass-half"></i> Đang thuê
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (rental.Status != "Returned")
+                                            {
+                                                <form asp-action="Return" method="post" style="display:inline;" class="return-form" data-transaction-id="@rental.TransactionId">
+                                                    <input type="hidden" name="transactionId" value="@rental.TransactionId" />
+                                                    <button type="button" class="btn btn-sm btn-success btn-return">
+                                                        <i class="fas fa-undo"></i> Nhận trả
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                        <p class="mb-0">Chưa có giao dịch thuê trực tiếp nào</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Thuê online -->
+    <div class="tab-pane fade" id="online" role="tabpanel">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-cloud"></i> Giao dịch thuê online</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.OnlineRentals.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Mã GD</th>
+                                    <th>Người thuê</th>
+                                    <th>Sách</th>
+                                    <th>Ngày mua</th>
+                                    <th>Ngày hết hạn</th>
+                                    <th>Số ngày</th>
+                                    <th>Số tiền</th>
+                                    <th>Thanh toán</th>
+                                    <th>Trạng thái</th>
+                                    <th>Link truy cập</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var rental in Model.OnlineRentals)
+                                {
+                                    var isExpired = rental.IsExpired();
+                                    var rowClass = isExpired ? "table-danger" : (rental.Status == "Expired" ? "table-secondary" : "table-success");
+                                    var rentalDays = rental.GetRentalDays();
+
+                                    <tr class="@rowClass">
+                                        <td><strong>#ON@rental.OnlineTransactionId</strong></td>
+                                        <td>
+                                            <i class="fas fa-user"></i> @rental.User?.FullName
+                                            <br />
+                                            <small class="text-muted">@rental.User?.Email</small>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-book"></i> @rental.Book?.Title
+                                            <br />
+                                            <small class="text-muted">@rental.Book?.Author</small>
+                                        </td>
+                                        <td>
+                                            <i class="far fa-calendar-alt"></i>
+                                            @rental.PurchaseDate.ToString("dd/MM/yyyy")
+                                            <br />
+                                            <small class="text-muted">@rental.PurchaseDate.ToString("HH:mm")</small>
+                                        </td>
+                                        <td>
+                                            <i class="far fa-calendar-check"></i>
+                                            @rental.ExpiryDate.ToString("dd/MM/yyyy")
+                                            @if (isExpired)
+                                            {
+                                                <br />
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-triangle"></i> Hết hạn
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (rentalDays > 0)
+                                            {
+                                                <span class="badge bg-info">@rentalDays ngày</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">@rental.Amount.ToString("N0") đ</strong>
+                                        </td>
+                                        <td>
+                                            @if (rental.PaymentStatus == "Paid")
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle"></i> Đã thanh toán
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-clock"></i> Chờ thanh toán
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (rental.Status == "Active")
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> Đang hoạt động
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-times"></i> Đã hết hạn
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(rental.AccessLink))
+                                            {
+                                                <a href="@rental.AccessLink" class="btn btn-sm btn-primary" target="_blank">
+                                                    <i class="fas fa-external-link-alt"></i> Truy cập
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Chưa có</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                        <p class="mb-0">Chưa có giao dịch thuê online nào</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thống kê -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card bg-light shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3"><i class="fas fa-chart-bar"></i> Thống kê tổng hợp</h5>
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h6>Tổng giao dịch</h6>
+                        <h3 class="text-primary">@(Model.OfflineRentals.Count() + Model.OnlineRentals.Count())</h3>
+                    </div>
+                    <div class="col-md-3">
+                        <h6>Thuê trực tiếp</h6>
+                        <h3 class="text-info">@Model.OfflineRentals.Count()</h3>
+                    </div>
+                    <div class="col-md-3">
+                        <h6>Thuê online</h6>
+                        <h3 class="text-info">@Model.OnlineRentals.Count()</h3>
+                    </div>
+                    <div class="col-md-3">
+                        <h6>Đang hoạt động</h6>
+                        <h3 class="text-success">
+                            @(Model.OfflineRentals.Count(r => r.Status != "Returned") + Model.OnlineRentals.Count(r => r.Status == "Active"))
+                        </h3>
+                    </div>
+                </div>
+                <hr />
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h6>Doanh thu trực tiếp</h6>
+                        <h3 class="text-success">@Model.OfflineRentals.Sum(r => r.TotalAmount).ToString("N0") đ</h3>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Doanh thu online</h6>
+                        <h3 class="text-success">@Model.OnlineRentals.Sum(r => r.Amount).ToString("N0") đ</h3>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Tổng phí phạt</h6>
+                        <h3 class="text-danger">@Model.OfflineRentals.Sum(r => r.LateFee).ToString("N0") đ</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentForm = null;
+
+        // Auto-hide alerts after 6 seconds with fade animation
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('.alert').addClass('fade-out');
+                setTimeout(function() {
+                    $('.alert').alert('close');
+                }, 500);
+            }, 6000);
+
+            // Click anywhere on alert to dismiss
+            $('.alert').on('click', function() {
+                $(this).addClass('fade-out');
+                var alert = $(this);
+                setTimeout(function() {
+                    alert.alert('close');
+                }, 500);
+            });
+
+            // Handle return button click - show custom modal
+            $('.btn-return').on('click', function(e) {
+                e.preventDefault();
+                currentForm = $(this).closest('.return-form');
+                $('#confirmReturnModal').modal('show');
+            });
+
+            // Handle confirm button in modal
+            $('#confirmReturnBtn').on('click', function() {
+                if (currentForm) {
+                    $('#confirmReturnModal').modal('hide');
+                    currentForm.submit();
+                }
+            });
+        });
+    </script>
+}

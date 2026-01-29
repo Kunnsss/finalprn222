@@ -1,0 +1,922 @@
+﻿@* Views/Dashboard/Index.cshtml - VỚI TOAST NOTIFICATIONS ĐẸP *@
+@model LibraryManagement.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard Quản trị";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Thêm Toastr CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+
+<h2 class="mb-4">
+    <i class="fas fa-chart-line"></i> Dashboard Quản trị
+</h2>
+
+<!-- Stats Cards - Rental Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">User Online</h6>
+                        <h2 class="mb-0" id="onlineUsersCount">0</h2>
+                    </div>
+                    <i class="fas fa-users fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Đang cho thuê</h6>
+                        <h2 class="mb-0" id="activeRentalsCount">@Model.ActiveRentals</h2>
+                    </div>
+                    <i class="fas fa-book-reader fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Hôm nay</h6>
+                        <h2 class="mb-0" id="todayRentalsCount">@Model.TodayRentals</h2>
+                    </div>
+                    <i class="fas fa-calendar-day fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Quá hạn</h6>
+                        <h2 class="mb-0">@Model.OverdueRentals</h2>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h4 class="mb-3"><i class="fas fa-calendar-alt"></i> Thống kê Sự kiện</h4>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Tổng sự kiện</h6>
+                        <h2 class="mb-0">@Model.TotalEvents</h2>
+                    </div>
+                    <i class="fas fa-calendar-check fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Sắp diễn ra</h6>
+                        <h2 class="mb-0">@Model.UpcomingEvents</h2>
+                    </div>
+                    <i class="fas fa-clock fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Đã diễn ra</h6>
+                        <h2 class="mb-0">@Model.PastEvents</h2>
+                    </div>
+                    <i class="fas fa-history fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Đăng ký</h6>
+                        <h2 class="mb-0">@Model.TotalEventRegistrations</h2>
+                    </div>
+                    <i class="fas fa-user-check fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Announcements Management -->
+<div class="card mb-4">
+    <div class="card-header bg-purple text-white" style="background-color: #6f42c1 !important;">
+        <h5 class="mb-0">
+            <i class="fas fa-megaphone"></i> Quản lý Thông báo Hệ thống
+        </h5>
+    </div>
+    <div class="card-body">
+        <form id="announcementForm">
+            <div class="row">
+                <div class="col-md-2">
+                    <select class="form-select" id="announcementType">
+                        <option value="Info">Thông tin</option>
+                        <option value="Warning">Cảnh báo</option>
+                        <option value="Alert">Khẩn cấp</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="announcementTitle" placeholder="Tiêu đề..." required />
+                </div>
+                <div class="col-md-3">
+                    <textarea class="form-control" id="announcementContent" placeholder="Nội dung..." rows="1" required></textarea>
+                </div>
+                <div class="col-md-2">
+                    <input type="datetime-local" class="form-control" id="announcementExpiry" title="Ngày hết hạn (tùy chọn)" />
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-purple w-100" id="btnCreateAnnouncement" style="background-color: #6f42c1; color: white;">
+                        <i class="fas fa-paper-plane"></i> Tạo & Gửi
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Active Announcements List -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-list"></i> Thông báo Đang Hoạt động
+        </h5>
+    </div>
+    <div class="card-body">
+        <div id="announcementsList" style="max-height: 300px; overflow-y: auto;">
+            <p class="text-muted">Đang tải...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Broadcast System Message (Quick Alert) -->
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-bullhorn"></i> Gửi Tin Nhắn Nhanh (Không lưu)
+        </h5>
+    </div>
+    <div class="card-body">
+        <form id="broadcastForm">
+            <div class="row">
+                <div class="col-md-3">
+                    <select class="form-select" id="messageType">
+                        <option value="Info">Thông tin</option>
+                        <option value="Warning">Cảnh báo</option>
+                        <option value="Alert">Khẩn cấp</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="messageTitle" placeholder="Tiêu đề..." />
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="messageContent" placeholder="Nội dung thông báo..." />
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger w-100" id="btnBroadcast">
+                        <i class="fas fa-broadcast-tower"></i> Gửi
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Quick Create Event -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-plus-circle"></i> Tạo sự kiện nhanh
+        </h5>
+    </div>
+    <div class="card-body">
+        <form id="quickEventForm">
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="eventName" placeholder="Tên sự kiện..." required />
+                </div>
+                <div class="col-md-2">
+                    <input type="datetime-local" class="form-control" id="eventDate" required />
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control" id="eventLocation" placeholder="Địa điểm..." />
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control" id="eventMaxParticipants" placeholder="Số người tối đa" value="50" />
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-info w-100" id="btnCreateEvent">
+                        <i class="fas fa-calendar-plus"></i> Tạo sự kiện
+                    </button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <textarea class="form-control" id="eventDescription" rows="2" placeholder="Mô tả sự kiện..."></textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Upcoming Events & Event Chart -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt"></i> Sự kiện sắp diễn ra
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="upcomingEventsList" style="max-height: 400px; overflow-y: auto;">
+                    <p class="text-muted">Đang tải...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar"></i> Top 5 Sự kiện Hot
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="eventChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Thống kê mượn trả theo giờ (Realtime)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="rentalChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">User Online (Live)</h5>
+            </div>
+            <div class="card-body">
+                <div id="onlineUsersList" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Danh sách user online sẽ được load ở đây -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Tổng quan</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <td>Tổng số sách:</td>
+                        <td><strong>@Model.TotalBooks</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Tổng thành viên:</td>
+                        <td><strong>@Model.TotalUsers</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Đặt chỗ chờ xử lý:</td>
+                        <td><strong>@Model.PendingReservations</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Tổng doanh thu:</td>
+                        <td><strong>@Model.TotalRevenue.ToString("N0") VND</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Thêm Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+    <script>
+                console.log('=== DASHBOARD DEBUG ===');
+
+                // Cấu hình Toastr
+                toastr.options = {
+                    "closeButton": true,
+                    "debug": false,
+                    "newestOnTop": true,
+                    "progressBar": true,
+                    "positionClass": "toast-top-right",
+                    "preventDuplicates": false,
+                    "onclick": null,
+                    "showDuration": "300",
+                    "hideDuration": "1000",
+                    "timeOut": "5000",
+                    "extendedTimeOut": "1000",
+                    "showEasing": "swing",
+                    "hideEasing": "linear",
+                    "showMethod": "fadeIn",
+                    "hideMethod": "fadeOut"
+                };
+
+                // Helper function để show toast
+                function showToast(message, type = 'success', title = '') {
+                    switch(type) {
+                        case 'success':
+                            toastr.success(message, title || 'Thành công');
+                            break;
+                        case 'error':
+                            toastr.error(message, title || 'Lỗi');
+                            break;
+                        case 'warning':
+                            toastr.warning(message, title || 'Cảnh báo');
+                            break;
+                        case 'info':
+                            toastr.info(message, title || 'Thông tin');
+                            break;
+                        default:
+                            toastr.info(message, title);
+                    }
+                }
+
+                // Kiểm tra SignalR connection từ _Layout
+                if (typeof connection === 'undefined') {
+                    console.error('SignalR connection not found from _Layout.cshtml');
+                } else {
+                    console.log('SignalR connection found:', connection);
+                }
+
+                // Lắng nghe sự kiện từ SignalR Hub
+                if (typeof connection !== 'undefined') {
+                    connection.on("UpdateOnlineCount", function(count) {
+                        console.log('UpdateOnlineCount received:', count);
+                        document.getElementById("onlineUsersCount").textContent = count;
+                        loadOnlineUsers();
+                    });
+
+                    connection.on("StatsUpdated", function(stats) {
+                        console.log('StatsUpdated received:', stats);
+                        document.getElementById("activeRentalsCount").textContent = stats.activeRentals;
+                        document.getElementById("todayRentalsCount").textContent = stats.todayRentals;
+                        updateChart(stats);
+                    });
+                }
+
+                // Load danh sách user online
+                async function loadOnlineUsers() {
+                    try {
+                        console.log('Loading online users...');
+                        const response = await fetch('/Dashboard/GetOnlineUsers');
+                        const data = await response.json();
+                        console.log('Online users data:', data);
+
+                        const users = data.users || [];
+
+                        if (users.length === 0) {
+                            document.getElementById('onlineUsersList').innerHTML =
+                                '<p class="text-muted">Không có user online</p>';
+                            return;
+                        }
+
+                        const html = users.map(u => `
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+                                <div>
+                                    <strong>${u.userName}</strong>
+                                    <br><small class="text-muted">Kết nối: ${new Date(u.connectedAt).toLocaleTimeString('vi-VN')}</small>
+                                </div>
+                                <button class="btn btn-sm btn-danger" onclick="forceLogout('${u.userId}', '${u.userName}')">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </button>
+                            </div>
+                        `).join('');
+
+                        document.getElementById('onlineUsersList').innerHTML = html;
+                    } catch (err) {
+                        console.error('Lỗi load online users:', err);
+                        document.getElementById('onlineUsersList').innerHTML =
+                            '<p class="text-danger">Lỗi tải danh sách user</p>';
+                    }
+                }
+
+                // Force logout user
+                async function forceLogout(userId, userName) {
+                    if (!confirm(`Bạn có chắc muốn đăng xuất user "${userName}"?`)) return;
+
+                    const reason = prompt('Lý do:');
+                    if (!reason) return;
+
+                    try {
+                        if (typeof connection !== 'undefined') {
+                            await connection.invoke("ForceLogoutUser", userId, reason);
+                            showToast(`Đã gửi lệnh logout đến user ${userName}`, 'success');
+                        } else {
+                            showToast('Không có kết nối SignalR', 'error');
+                        }
+                    } catch (err) {
+                        console.error('Error force logout:', err);
+                        showToast('Lỗi: ' + err.message, 'error');
+                    }
+                }
+
+                // Broadcast message
+                async function broadcastMessage() {
+                    const type = document.getElementById('messageType').value;
+                    const title = document.getElementById('messageTitle').value;
+                    const content = document.getElementById('messageContent').value;
+
+                    console.log('Broadcasting message:', { type, title, content });
+
+                    if (!title || !content) {
+                        showToast('Vui lòng nhập đầy đủ thông tin!', 'warning');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/Dashboard/BroadcastMessage', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                title: title,
+                                message: content,
+                                type: type
+                            })
+                        });
+
+                        const result = await response.json();
+                        console.log('Broadcast result:', result);
+
+                        if (result.success) {
+                            showToast('Đã gửi thông báo đến tất cả user online!', 'success');
+                            document.getElementById('messageTitle').value = '';
+                            document.getElementById('messageContent').value = '';
+                        } else {
+                            showToast(result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('Error broadcasting:', err);
+                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+                    }
+                }
+
+                // Realtime chart
+                const ctx = document.getElementById('rentalChart').getContext('2d');
+                const rentalChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Số lượng mượn',
+                            data: [],
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+                function updateChart(stats) {
+                    const now = new Date().toLocaleTimeString('vi-VN');
+
+                    rentalChart.data.labels.push(now);
+                    rentalChart.data.datasets[0].data.push(stats.todayRentals);
+
+                    if (rentalChart.data.labels.length > 20) {
+                        rentalChart.data.labels.shift();
+                        rentalChart.data.datasets[0].data.shift();
+                    }
+
+                    rentalChart.update();
+                }
+
+                // ========== SYSTEM ANNOUNCEMENTS ==========
+
+                async function loadAnnouncements() {
+                    try {
+                        const response = await fetch('/Dashboard/GetAnnouncements');
+                        const data = await response.json();
+
+                        if (!data.success || !data.announcements || data.announcements.length === 0) {
+                            document.getElementById('announcementsList').innerHTML =
+                                '<p class="text-muted">Không có thông báo nào đang hoạt động</p>';
+                            return;
+                        }
+
+                        const html = data.announcements.map(a => {
+                            const typeClass = a.type === 'Alert' ? 'danger' : a.type === 'Warning' ? 'warning' : 'info';
+                            const typeIcon = a.type === 'Alert' ? 'fa-exclamation-circle' : a.type === 'Warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+                            const expiry = a.expiryDate ? new Date(a.expiryDate).toLocaleString('vi-VN') : 'Không giới hạn';
+
+                            return `
+                                <div class="card mb-2 border-${typeClass}">
+                                    <div class="card-body py-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">
+                                                    <i class="fas ${typeIcon} text-${typeClass}"></i> ${a.title}
+                                                    <span class="badge bg-${typeClass}">${a.type}</span>
+                                                </h6>
+                                                <p class="mb-1 small">${a.content}</p>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-user"></i> ${a.createdBy} |
+                                                    <i class="fas fa-clock"></i> ${new Date(a.createdDate).toLocaleString('vi-VN')} |
+                                                    <i class="fas fa-calendar-times"></i> Hết hạn: ${expiry}
+                                                </small>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAnnouncement(${a.announcementId})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        document.getElementById('announcementsList').innerHTML = html;
+                    } catch (err) {
+                        console.error('Error loading announcements:', err);
+                        document.getElementById('announcementsList').innerHTML =
+                            '<p class="text-danger">Lỗi tải danh sách thông báo</p>';
+                    }
+                }
+
+                async function createAnnouncement() {
+                    const type = document.getElementById('announcementType').value;
+                    const title = document.getElementById('announcementTitle').value;
+                    const content = document.getElementById('announcementContent').value;
+                    const expiry = document.getElementById('announcementExpiry').value;
+
+                    if (!title || !content) {
+                        showToast('Vui lòng nhập tiêu đề và nội dung!', 'warning');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/Dashboard/CreateAnnouncement', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                title: title,
+                                content: content,
+                                type: type,
+                                expiryDate: expiry || null
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showToast('Đã tạo và gửi thông báo thành công!', 'success');
+                            document.getElementById('announcementForm').reset();
+                            loadAnnouncements();
+                        } else {
+                            showToast(result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('Error creating announcement:', err);
+                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+                    }
+                }
+
+                async function deleteAnnouncement(announcementId) {
+                    if (!confirm('Bạn có chắc muốn xóa thông báo này?')) return;
+
+                    try {
+                        const response = await fetch('/Dashboard/DeleteAnnouncement', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ announcementId: announcementId })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showToast('Đã xóa thông báo!', 'success');
+                            loadAnnouncements();
+                        } else {
+                            showToast(result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('Error deleting announcement:', err);
+                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+                    }
+                }
+
+                // ========== EVENT MANAGEMENT ==========
+
+                async function loadUpcomingEvents() {
+                    try {
+                        const response = await fetch('/Dashboard/GetUpcomingEvents');
+                        const data = await response.json();
+
+                        if (!data.success || !data.events || data.events.length === 0) {
+                            document.getElementById('upcomingEventsList').innerHTML =
+                                '<p class="text-muted">Không có sự kiện sắp diễn ra</p>';
+                            return;
+                        }
+
+                        const html = data.events.map(e => {
+                            const eventDate = new Date(e.eventDate);
+                            const isNearby = (eventDate - new Date()) < 86400000 * 3;
+                            const availableSlots = (e.maxParticipants || 0) - e.currentParticipants;
+                            const isFull = availableSlots <= 0;
+
+                            return `
+                                <div class="card mb-3 ${isNearby ? 'border-warning' : ''}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">
+                                                    <i class="fas fa-calendar-day"></i> ${e.eventName}
+                                                    ${isNearby ? '<span class="badge bg-warning text-dark ms-2">Sắp diễn ra</span>' : ''}
+                                                    ${isFull ? '<span class="badge bg-danger ms-2">Đã đầy</span>' : ''}
+                                                </h6>
+                                                <p class="mb-1 text-muted small">${e.description || 'Không có mô tả'}</p>
+                                                <div class="small">
+                                                    <i class="fas fa-clock"></i> ${eventDate.toLocaleString('vi-VN')}
+                                                    <br>
+                                                    <i class="fas fa-map-marker-alt"></i> ${e.location || 'Chưa xác định'}
+                                                    <br>
+                                                    <i class="fas fa-users"></i> ${e.currentParticipants}/${e.maxParticipants || '∞'} người
+                                                    ${!isFull ? `<span class="text-success">(còn ${availableSlots} chỗ)</span>` : ''}
+                                                </div>
+                                            </div>
+                                            <div class="btn-group-vertical btn-group-sm">
+                                                <button class="btn btn-sm btn-outline-info" onclick="viewEventRegistrations(${e.eventId})" title="Xem đăng ký">
+                                                    <i class="fas fa-list"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="cancelEvent(${e.eventId}, '${e.eventName}')" title="Hủy sự kiện">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        document.getElementById('upcomingEventsList').innerHTML = html;
+                    } catch (err) {
+                        console.error('Error loading upcoming events:', err);
+                        document.getElementById('upcomingEventsList').innerHTML =
+                            '<p class="text-danger">Lỗi tải danh sách sự kiện</p>';
+                    }
+                }
+
+                async function createQuickEvent() {
+                    const eventName = document.getElementById('eventName').value;
+                    const eventDate = document.getElementById('eventDate').value;
+                    const eventLocation = document.getElementById('eventLocation').value;
+                    const eventMaxParticipants = document.getElementById('eventMaxParticipants').value;
+                    const eventDescription = document.getElementById('eventDescription').value;
+
+                    if (!eventName || !eventDate) {
+                        showToast('Vui lòng nhập tên sự kiện và thời gian!', 'warning');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/Dashboard/CreateQuickEvent', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                eventName: eventName,
+                                eventDate: eventDate,
+                                location: eventLocation,
+                                maxParticipants: parseInt(eventMaxParticipants) || 50,
+                                description: eventDescription
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showToast('Đã tạo sự kiện thành công!', 'success');
+                            document.getElementById('quickEventForm').reset();
+                            loadUpcomingEvents();
+                            loadEventStats();
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showToast(result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('Error creating event:', err);
+                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+                    }
+                }
+
+                async function cancelEvent(eventId, eventName) {
+                    if (!confirm(`Bạn có chắc muốn hủy sự kiện "${eventName}"?`)) return;
+
+                    const reason = prompt('Lý do hủy:');
+                    if (!reason) return;
+
+                    try {
+                        const response = await fetch('/Dashboard/CancelEvent', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ eventId: eventId, reason: reason })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showToast('Đã hủy sự kiện!', 'success');
+                            loadUpcomingEvents();
+                            loadEventStats();
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showToast(result.message, 'error');
+                        }
+                    } catch (err) {
+                        console.error('Error canceling event:', err);
+                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+                    }
+                }
+
+                async function viewEventRegistrations(eventId) {
+                    try {
+                        const response = await fetch(`/Dashboard/GetEventRegistrations?eventId=${eventId}`);
+                        const data = await response.json();
+
+                        if (!data.success || !data.registrations || data.registrations.length === 0) {
+                            showToast('Chưa có người đăng ký', 'info');
+                            return;
+                        }
+
+                        const html = data.registrations.map(r => `
+        - ${r.userName} (${r.email})
+          Trạng thái: ${r.status}
+          Đăng ký lúc: ${new Date(r.registrationDate).toLocaleString('vi-VN')}
+                        `).join('\n');
+
+                        alert(`Danh sách đăng ký (${data.registrations.length} người):\n\n${html}`);
+                    } catch (err) {
+                        console.error('Error loading registrations:', err);
+                        showToast('Lỗi tải danh sách đăng ký', 'error');
+                    }
+                }
+
+                let eventChart = null;
+                async function loadEventStats() {
+                    try {
+                        const response = await fetch('/Dashboard/GetEventStats');
+                        const data = await response.json();
+
+                        if (!data.success) return;
+
+                        const ctx = document.getElementById('eventChart');
+                        if (!ctx) return;
+
+                        if (eventChart) {
+                            eventChart.destroy();
+                        }
+
+                        const ctxEvent = ctx.getContext('2d');
+                        eventChart = new Chart(ctxEvent, {
+                            type: 'bar',
+                            data: {
+                                labels: data.topEvents.map(e => e.eventName),
+                                datasets: [{
+                                    label: 'Số người đăng ký',
+                                    data: data.topEvents.map(e => e.participants),
+                                    backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                                    borderColor: 'rgba(23, 162, 184, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+                    } catch (err) {
+                        console.error('Error loading event stats:', err);
+                    }
+                }
+
+                // Event listeners
+                document.getElementById('btnBroadcast').addEventListener('click', broadcastMessage);
+                document.getElementById('btnCreateEvent').addEventListener('click', createQuickEvent);
+                document.getElementById('btnCreateAnnouncement').addEventListener('click', createAnnouncement);
+
+                // SignalR event listeners
+                if (typeof connection !== 'undefined') {
+                    connection.on("NewEventCreated", function(data) {
+                        console.log('New event created:', data);
+                        loadUpcomingEvents();
+                        loadEventStats();
+                        showToast(data.message, 'info', 'Sự kiện mới');
+                    });
+
+                    connection.on("EventCancelled", function(data) {
+                        console.log('Event cancelled:', data);
+                        loadUpcomingEvents();
+                        loadEventStats();
+                        showToast(`Sự kiện "${data.eventName}" đã bị hủy. Lý do: ${data.reason}`, 'warning', 'Sự kiện hủy');
+                    });
+                }
+
+                // Refresh stats
+                setInterval(async () => {
+                    try {
+                        const response = await fetch('/Dashboard/GetRealtimeStats');
+                        const stats = await response.json();
+
+                        document.getElementById('onlineUsersCount').textContent = stats.onlineUsers;
+                        document.getElementById('activeRentalsCount').textContent = stats.activeRentals;
+                        document.getElementById('todayRentalsCount').textContent = stats.todayRentals;
+
+                        updateChart(stats);
+                    } catch (err) {
+                        console.error('Error loading stats:', err);
+                    }
+                }, 5000);
+
+                // Load initial data
+                console.log('Loading initial data...');
+                loadOnlineUsers();
+                loadUpcomingEvents();
+                loadEventStats();
+                loadAnnouncements();
+
+                fetch('/Dashboard/GetRealtimeStats')
+                    .then(res => res.json())
+                    .then(stats => {
+                        console.log('Initial stats:', stats);
+                        document.getElementById('onlineUsersCount').textContent = stats.onlineUsers;
+                    })
+                    .catch(err => console.error('Error loading initial stats:', err));
+
+                setInterval(() => {
+                    loadUpcomingEvents();
+                    loadEventStats();
+                    loadAnnouncements();
+                }, 30000);
+    </script>
+}

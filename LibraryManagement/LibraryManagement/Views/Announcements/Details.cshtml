@@ -1,0 +1,138 @@
+﻿@* Views/Announcements/Details.cshtml - Chi tiết Thông báo *@
+@model LibraryManagement.Models.SystemAnnouncement
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var typeClass = Model.Type == "Alert" ? "danger" :
+                   Model.Type == "Warning" ? "warning" : "info";
+    var typeIcon = Model.Type == "Alert" ? "fa-exclamation-circle" :
+                  Model.Type == "Warning" ? "fa-exclamation-triangle" : "fa-info-circle";
+}
+
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-lg border-@typeClass border-3">
+                <!-- Header -->
+                <div class="card-header bg-@typeClass text-white py-3">
+                    <h3 class="mb-0">
+                        <i class="fas @typeIcon"></i> @Model.Title
+                    </h3>
+                </div>
+
+                <!-- Body -->
+                <div class="card-body p-4">
+                    <!-- Type Badge -->
+                    <div class="mb-4">
+                        <span class="badge bg-@typeClass fs-5">
+                            @Model.Type
+                        </span>
+                        @if (Model.Type == "Alert")
+                        {
+                            <span class="badge bg-danger fs-6 ms-2">
+                                <i class="fas fa-exclamation-triangle"></i> KHẨN CẤP
+                            </span>
+                        }
+                    </div>
+
+                    <!-- Content -->
+                    <div class="announcement-content mb-4">
+                        <h5 class="mb-3"><i class="fas fa-file-alt"></i> Nội dung:</h5>
+                        <div class="p-3 bg-light rounded" style="white-space: pre-line; line-height: 1.8;">
+                            @Model.Content
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Meta Information -->
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-user text-primary"></i> Người tạo</h6>
+                            <p class="ms-4">@(Model.Creator?.Username ?? "Admin")</p>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-clock text-success"></i> Ngày tạo</h6>
+                            <p class="ms-4">@Model.CreatedDate.ToString("dddd, dd/MM/yyyy HH:mm")</p>
+                        </div>
+
+                        @if (Model.ExpiryDate.HasValue)
+                        {
+                            <div class="col-md-6 mb-3">
+                                <h6><i class="fas fa-calendar-times text-warning"></i> Ngày hết hạn</h6>
+                                <p class="ms-4">@Model.ExpiryDate.Value.ToString("dddd, dd/MM/yyyy HH:mm")</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-6 mb-3">
+                                <h6><i class="fas fa-infinity text-info"></i> Thời hạn</h6>
+                                <p class="ms-4">Không giới hạn</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Alert Box for Important Announcements -->
+                    @if (Model.Type == "Alert")
+                    {
+                        <div class="alert alert-danger mt-4" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle"></i> Lưu ý quan trọng!
+                            </h5>
+                            <p class="mb-0">
+                                Đây là thông báo khẩn cấp. Vui lòng đọc kỹ và thực hiện theo hướng dẫn.
+                            </p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Footer -->
+                <div class="card-footer bg-light text-muted">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small>
+                            <i class="fas fa-info-circle"></i> Thông báo này được phát hành bởi Ban Quản lý Thư viện
+                        </small>
+                        <a asp-action="Index" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-list"></i> Xem tất cả thông báo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-3 {
+        border-width: 3px !important;
+    }
+
+    .announcement-content {
+        font-size: 1.1rem;
+    }
+
+    .card {
+        animation: fadeIn 0.5s;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>

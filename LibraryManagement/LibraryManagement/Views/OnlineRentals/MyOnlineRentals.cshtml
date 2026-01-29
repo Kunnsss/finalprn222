@@ -1,0 +1,80 @@
+﻿<!-- Views/OnlineRentals/MyOnlineRentals.cshtml -->
+@model IEnumerable<LibraryManagement.Models.OnlineRentalTransaction>
+@{
+    ViewData["Title"] = "Sách Online đã thuê";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="mb-4"><i class="fas fa-laptop"></i> Sách Online đã thuê</h2>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Tên sách</th>
+                <th>Ngày mua</th>
+                <th>Hết hạn</th>
+                <th>Số tiền</th>
+                <th>Thanh toán</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rental in Model)
+            {
+                var isExpired = rental.ExpiryDate < DateTime.Now;
+                var rowClass = isExpired ? "table-secondary" :
+                (rental.PaymentStatus == "Paid" ? "table-success" : "table-warning");
+
+                <tr class="@rowClass">
+                    <td>@rental.Book.Title</td>
+                    <td>@rental.PurchaseDate.ToString("dd/MM/yyyy")</td>
+                    <td>@rental.ExpiryDate.ToString("dd/MM/yyyy")</td>
+                    <td><strong>@rental.Amount.ToString("N0") VND</strong></td>
+                    <td>
+                        @if (rental.PaymentStatus == "Paid")
+                        {
+                            <span class="badge bg-success">Đã thanh toán</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning">Chưa thanh toán</span>
+                        }
+                    </td>
+                    <td>
+                        @if (isExpired)
+                        {
+                            <span class="badge bg-secondary">Hết hạn</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary">Còn hiệu lực</span>
+                        }
+                    </td>
+                    <td>
+                        @if (rental.PaymentStatus == "Pending")
+                        {
+                            <a asp-action="Payment" asp-route-transactionId="@rental.OnlineTransactionId" class="btn btn-sm btn-warning">
+                                <i class="fas fa-credit-card"></i> Thanh toán
+                            </a>
+                        }
+                        else if (rental.PaymentStatus == "Paid" && !isExpired)
+                        {
+                            <a asp-action="AccessBook" asp-route-transactionId="@rental.OnlineTransactionId" class="btn btn-sm btn-success">
+                                <i class="fas fa-book-open"></i> Đọc sách
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle"></i> Bạn chưa thuê sách online nào.
+    </div>
+}

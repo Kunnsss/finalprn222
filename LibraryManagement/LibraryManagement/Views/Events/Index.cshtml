@@ -1,0 +1,195 @@
+﻿@* Views/Events/Index.cshtml - Danh sách sự kiện cho User *@
+@model IEnumerable<LibraryManagement.Models.LibraryEvent>
+@{
+    ViewData["Title"] = "Sự kiện Thư viện";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var filter = ViewBag.Filter ?? "all";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-calendar-alt"></i> Sự kiện Thư viện
+            </h2>
+            <p class="text-muted">Khám phá và tham gia các sự kiện thú vị tại thư viện</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a asp-action="MyEvents" class="btn btn-primary">
+                <i class="fas fa-list"></i> Sự kiện của tôi
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link @(filter == "all" ? "active" : "")" asp-action="Index" asp-route-filter="all">
+                <i class="fas fa-th"></i> Tất cả
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(filter == "upcoming" ? "active" : "")" asp-action="Index" asp-route-filter="upcoming">
+                <i class="fas fa-clock"></i> Sắp diễn ra
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(filter == "available" ? "active" : "")" asp-action="Index" asp-route-filter="available">
+                <i class="fas fa-check-circle"></i> Còn chỗ
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(filter == "full" ? "active" : "")" asp-action="Index" asp-route-filter="full">
+                <i class="fas fa-users"></i> Đã đầy
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(filter == "past" ? "active" : "")" asp-action="Index" asp-route-filter="past">
+                <i class="fas fa-history"></i> Đã diễn ra
+            </a>
+        </li>
+    </ul>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Events Grid -->
+    @if (Model != null && Model.Any())
+    {
+        <div class="row">
+            @foreach (var evt in Model)
+            {
+                var isUpcoming = evt.EventDate >= DateTime.Now;
+                var isPast = evt.EventDate < DateTime.Now;
+                var isFull = evt.MaxParticipants.HasValue && evt.CurrentParticipants >= evt.MaxParticipants.Value;
+                var availableSlots = evt.MaxParticipants.HasValue ? evt.MaxParticipants.Value - evt.CurrentParticipants : 0;
+                var isNearby = isUpcoming && (evt.EventDate - DateTime.Now).TotalDays <= 3;
+
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 event-card @(isNearby ? "border-warning" : "") @(isFull ? "border-danger" : "")">
+                        <div class="card-header @(isPast ? "bg-secondary" : isNearby ? "bg-warning" : isFull ? "bg-danger" : "bg-primary") text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-calendar-day"></i> @evt.EventName
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted mb-3">
+                                @(string.IsNullOrEmpty(evt.Description) ? "Không có mô tả" : (evt.Description.Length > 100 ? evt.Description.Substring(0, 100) + "..." : evt.Description))
+                            </p>
+
+                            <div class="event-info">
+                                <p class="mb-2">
+                                    <i class="fas fa-clock text-primary"></i>
+                                    <strong>Thời gian:</strong><br>
+                                    <span class="ms-4">@evt.EventDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                </p>
+
+                                <p class="mb-2">
+                                    <i class="fas fa-map-marker-alt text-danger"></i>
+                                    <strong>Địa điểm:</strong><br>
+                                    <span class="ms-4">@(string.IsNullOrEmpty(evt.Location) ? "Chưa xác định" : evt.Location)</span>
+                                </p>
+
+                                <p class="mb-2">
+                                    <i class="fas fa-users text-success"></i>
+                                    <strong>Số lượng:</strong><br>
+                                    <span class="ms-4">
+                                        @evt.CurrentParticipants/@(evt.MaxParticipants?.ToString() ?? "∞") người
+                                        @if (!isFull && isUpcoming && evt.MaxParticipants.HasValue)
+                                        {
+                                            <span class="badge bg-success">Còn @availableSlots chỗ</span>
+                                        }
+                                        @if (isFull)
+                                        {
+                                            <span class="badge bg-danger">Đã đầy</span>
+                                        }
+                                    </span>
+                                </p>
+
+                                <p class="mb-0">
+                                    <i class="fas fa-user text-info"></i>
+                                    <strong>Tạo bởi:</strong><br>
+                                    <span class="ms-4">@(evt.Creator?.Username ?? "Unknown")</span>
+                                </p>
+                            </div>
+
+                            @if (isNearby)
+                            {
+                                <div class="alert alert-warning mt-3 mb-0 py-2">
+                                    <i class="fas fa-exclamation-circle"></i> Sự kiện sắp diễn ra!
+                                </div>
+                            }
+
+                            @if (isPast)
+                            {
+                                <div class="alert alert-secondary mt-3 mb-0 py-2">
+                                    <i class="fas fa-check"></i> Sự kiện đã diễn ra
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a asp-action="Details" asp-route-id="@evt.EventId" class="btn btn-primary w-100">
+                                <i class="fas fa-info-circle"></i> Xem chi tiết
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center py-5">
+            <i class="fas fa-calendar-times fa-3x mb-3"></i>
+            <h4>Không có sự kiện nào</h4>
+            <p class="text-muted">Hiện tại chưa có sự kiện nào theo bộ lọc bạn chọn.</p>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Auto dismiss alerts
+        setTimeout(function() {
+            $('.alert').fadeOut('slow');
+        }, 5000);
+
+        // Animation for event cards
+        $('.event-card').hover(
+            function() { $(this).addClass('shadow-lg'); },
+            function() { $(this).removeClass('shadow-lg'); }
+        );
+    </script>
+}
+
+<style>
+    .event-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .event-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .event-info p {
+        font-size: 0.9rem;
+    }
+
+    .event-info i {
+        width: 20px;
+    }
+</style>

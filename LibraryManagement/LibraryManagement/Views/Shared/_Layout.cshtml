@@ -1,0 +1,832 @@
+﻿<!-- Views/Shared/_Layout.cshtml - Improved -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Thư Viện</title>
+
+    <!-- Bootstrap CSS từ CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        /* ==================== CUSTOM ALERT STYLING ==================== */
+        .alert {
+            border-left: 4px solid;
+            border-radius: 8px;
+            animation: slideInDown 0.3s ease-out;
+        }
+
+        .alert-success {
+            border-left-color: #198754;
+            background-color: #d1e7dd;
+        }
+
+        .alert-danger {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+
+        .alert-info {
+            border-left-color: #0dcaf0;
+            background-color: #cff4fc;
+        }
+
+        .alert-warning {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+
+        .alert .alert-heading {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        @@keyframes slideInDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .alert.fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        @@keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        /* ==================== CUSTOM CONFIRMATION MODAL ==================== */
+        .custom-confirm-modal .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .custom-confirm-modal .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            border: none;
+        }
+
+        .custom-confirm-modal .modal-body {
+            padding: 30px;
+            font-size: 1.1rem;
+        }
+
+        .custom-confirm-modal .btn-custom-confirm {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 10px 30px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+            .custom-confirm-modal .btn-custom-confirm:hover {
+                transform: scale(1.05);
+            }
+
+        .custom-confirm-modal .btn-custom-cancel {
+            background: #6c757d;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+            .custom-confirm-modal .btn-custom-cancel:hover {
+                transform: scale(1.05);
+            }
+
+        /* ==================== EXISTING STYLES ==================== */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+
+        main {
+            flex: 1;
+        }
+
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.3rem;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            transition: all 0.3s;
+            padding: 0.5rem 0.8rem !important;
+            font-size: 0.9rem;
+        }
+
+            .nav-link:hover {
+                transform: translateY(-2px);
+            }
+
+        .footer {
+            background-color: #fff;
+            border-top: 1px solid #dee2e6;
+            padding: 20px 0;
+            margin-top: 40px;
+        }
+
+        #notificationBell {
+            position: relative;
+            cursor: pointer;
+        }
+
+        #notificationCount {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            font-size: 10px;
+            min-width: 18px;
+            height: 18px;
+            padding: 2px 5px;
+            border-radius: 50%;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            }
+
+        .btn {
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+            .btn:hover {
+                transform: translateY(-2px);
+            }
+
+        .dropdown-menu {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .modal-content {
+            border-radius: 10px;
+            border: none;
+        }
+
+        .notification-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+
+            .notification-item:hover {
+                background-color: #f8f9fa;
+            }
+
+            .notification-item:last-child {
+                border-bottom: none;
+            }
+
+            .notification-item.unread {
+                background-color: #e7f3ff;
+            }
+
+        .navbar-nav .nav-item {
+            margin-right: 0;
+        }
+
+        .dropdown-item {
+            font-size: 0.9rem;
+            padding: 0.4rem 1rem;
+        }
+
+        @@media (max-width: 991px) {
+            .navbar-collapse {
+                background-color: rgba(13, 110, 253, 0.95);
+                padding: 1rem;
+                margin-top: 0.5rem;
+                border-radius: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-book-reader"></i> Thư Viện
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">
+                                <i class="fas fa-home"></i> Trang chủ
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Books" asp-action="Index">
+                                <i class="fas fa-book"></i> Sách
+                            </a>
+                        </li>
+
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user-circle"></i> Của tôi
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Rentals" asp-action="MyRentals">
+                                            <i class="fas fa-bookmark"></i> Sách đã thuê
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="OnlineRentals" asp-action="MyOnlineRentals">
+                                            <i class="fas fa-laptop"></i> Sách Online
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="BookReservation" asp-action="MyReservations">
+                                            <i class="fas fa-calendar-check"></i> Đặt chỗ sách
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Events" asp-action="MyEvents">
+                                            <i class="fas fa-list-alt"></i> Sự kiện của tôi
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Wishlist" asp-action="Index">
+                                            <i class="fas fa-heart"></i> Yêu thích
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="ReadingHistory" asp-action="Index">
+                                            <i class="fas fa-history"></i> Sách đã đọc
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Events" asp-action="Index">
+                                    <i class="fas fa-calendar-alt"></i> Sự kiện
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Support" asp-action="Chat">
+                                    <i class="fas fa-comments"></i> Hỗ trợ
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Announcements" asp-action="Index">
+                                    <i class="fas fa-bullhorn"></i> Thông Báo Hệ Thống
+                                </a>
+                            </li>
+                        }
+
+                        @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i> Quản lý
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Dashboard" asp-action="Index">
+                                            <i class="fas fa-chart-line"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Books" asp-action="Create">
+                                            <i class="fas fa-plus-circle"></i> Thêm sách
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Rentals" asp-action="AllRentals">
+                                            <i class="fas fa-list"></i> Tất cả giao dịch
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Rentals" asp-action="OverdueRentals">
+                                            <i class="fas fa-exclamation-triangle"></i> Sách quá hạn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="BookReservation" asp-action="ManageReservations">
+                                            <i class="fas fa-clock"></i> Quản lý đặt chỗ
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Support" asp-action="ManageChats">
+                                            <i class="fas fa-comments"></i> Quản lý hỗ trợ
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">
+                                            <i class="fas fa-users-cog"></i> Quản lý tài khoản
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+
+                    <ul class="navbar-nav">
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" id="notificationBell">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="badge bg-danger" id="notificationCount" style="display:none;">0</span>
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user-circle"></i> @User.FindFirst("FullName")?.Value
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <span class="dropdown-item-text">
+                                            <i class="fas fa-id-badge"></i>
+                                            <strong>@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</strong>
+                                        </span>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                            <i class="fas fa-user"></i> Thông tin cá nhân
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post">
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Login">
+                                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Register">
+                                    <i class="fas fa-user-plus"></i> Đăng ký
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container my-4">
+        @* ==================== IMPROVED ALERTS ==================== *@
+        @if (TempData["SuccessMessage"] != null)
+        {
+            var message = TempData["SuccessMessage"].ToString();
+            message = System.Text.RegularExpressions.Regex.Replace(message, @"https?://localhost:\d+[^\s]*", "");
+            message = message.Trim();
+
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle fa-2x me-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="alert-heading mb-1">Thành công!</h5>
+                        <p class="mb-0">@message</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            var message = TempData["ErrorMessage"].ToString();
+            message = System.Text.RegularExpressions.Regex.Replace(message, @"https?://localhost:\d+[^\s]*", "");
+            message = message.Trim();
+
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle fa-2x me-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="alert-heading mb-1">Có lỗi xảy ra!</h5>
+                        <p class="mb-0">@message</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+
+        @if (TempData["InfoMessage"] != null)
+        {
+            var message = TempData["InfoMessage"].ToString();
+            message = System.Text.RegularExpressions.Regex.Replace(message, @"https?://localhost:\d+[^\s]*", "");
+            message = message.Trim();
+
+            <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-info-circle fa-2x me-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="alert-heading mb-1">Thông báo</h5>
+                        <p class="mb-0">@message</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    @* ==================== CUSTOM CONFIRMATION MODAL ==================== *@
+    <div class="modal fade custom-confirm-modal" id="globalConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-question-circle"></i> <span id="confirmTitle">Xác nhận</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i id="confirmIcon" class="fas fa-question-circle fa-3x text-primary mb-3"></i>
+                    <p id="confirmMessage" class="mb-0">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+                    <small class="text-muted">Hành động này có thể không thể hoàn tác</small>
+                </div>
+                <div class="modal-footer justify-content-center border-0">
+                    <button type="button" class="btn btn-custom-cancel" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Hủy
+                    </button>
+                    <button type="button" class="btn btn-custom-confirm" id="globalConfirmBtn">
+                        <i class="fas fa-check"></i> Xác nhận
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Modal -->
+    <div class="modal fade" id="notificationModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-bell"></i> Thông báo
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0" id="notificationList" style="max-height: 400px;">
+                    <div class="p-4 text-center text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>Không có thông báo mới</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="markAllAsRead()">
+                        <i class="fas fa-check-double"></i> Đánh dấu đã đọc
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-auto py-1">
+        <div class="container text-center">
+            <span class="text-muted">
+                <i class="fas fa-book-reader"></i> &copy; 2026 - Hệ thống quản lý thư viện
+            </span>
+        </div>
+    </footer>
+
+    <!-- Scripts từ CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+
+    <script>
+        // ==================== GLOBAL CONFIRM FUNCTIONALITY ====================
+        let globalConfirmCallback = null;
+
+        // Override window.confirm to use our custom modal
+        window.customConfirm = function(message, title = "Xác nhận", icon = "fa-question-circle") {
+            return new Promise((resolve) => {
+                document.getElementById('confirmTitle').textContent = title;
+                document.getElementById('confirmMessage').textContent = message;
+                document.getElementById('confirmIcon').className = `fas ${icon} fa-3x text-primary mb-3`;
+
+                globalConfirmCallback = resolve;
+                const modal = new bootstrap.Modal(document.getElementById('globalConfirmModal'));
+                modal.show();
+            });
+        };
+
+        document.getElementById('globalConfirmBtn').addEventListener('click', function() {
+            if (globalConfirmCallback) {
+                globalConfirmCallback(true);
+                globalConfirmCallback = null;
+            }
+            bootstrap.Modal.getInstance(document.getElementById('globalConfirmModal')).hide();
+        });
+
+        document.getElementById('globalConfirmModal').addEventListener('hidden.bs.modal', function() {
+            if (globalConfirmCallback) {
+                globalConfirmCallback(false);
+                globalConfirmCallback = null;
+            }
+        });
+
+        // Auto-handle all forms with data-confirm attribute
+        document.addEventListener('submit', async function(e) {
+            const form = e.target;
+            if (form.hasAttribute('data-confirm')) {
+                e.preventDefault();
+                const message = form.getAttribute('data-confirm');
+                const confirmed = await customConfirm(message, 'Xác nhận', 'fa-question-circle');
+                if (confirmed) {
+                    form.removeAttribute('data-confirm');
+                    form.submit();
+                }
+            }
+        });
+
+        // Auto-handle all buttons with data-confirm attribute
+        document.addEventListener('click', async function(e) {
+            const btn = e.target.closest('[data-confirm]');
+            if (btn && !btn.form) {
+                e.preventDefault();
+                const message = btn.getAttribute('data-confirm');
+                const confirmed = await customConfirm(message, 'Xác nhận', 'fa-question-circle');
+                if (confirmed) {
+                    if (btn.form) {
+                        btn.form.submit();
+                    } else if (btn.hasAttribute('onclick')) {
+                        btn.removeAttribute('data-confirm');
+                        btn.click();
+                    }
+                }
+            }
+        });
+
+        // ==================== AUTO-HIDE ALERTS ====================
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('.alert').addClass('fade-out');
+                setTimeout(function() {
+                    $('.alert').alert('close');
+                }, 500);
+            }, 6000);
+
+            $('.alert').on('click', function() {
+                $(this).addClass('fade-out');
+                var alert = $(this);
+                setTimeout(function() {
+                    alert.alert('close');
+                }, 500);
+            });
+        });
+    </script>
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <script>
+            // SignalR Connection
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/libraryHub")
+                .build();
+
+            connection.on("ReceiveNotification", function (notification) {
+                updateNotificationCount(1);
+                showToast(notification.message, notification.type);
+            });
+
+            connection.on("BookNowAvailable", function (data) {
+                updateNotificationCount(1);
+                showToast(data.message, "BookAvailable");
+            });
+
+            connection.on("SystemMessage", function (data) {
+                showSystemMessage(data.title, data.message, data.type);
+            });
+
+            connection.on("NewEventCreated", function (data) {
+                showToast(data.message, "Info");
+            });
+
+            connection.on("EventCancelled", function (data) {
+                showToast(`Sự kiện "${data.eventName}" đã bị hủy. Lý do: ${data.reason}`, "Warning");
+            });
+
+            connection.start()
+                .then(() => {
+                    console.log('SignalR Connected');
+                    loadNotificationCount();
+                })
+                .catch(err => console.error('SignalR Error:', err.toString()));
+
+            function loadNotificationCount() {
+                fetch('/Notifications/GetUnreadCount')
+                    .then(res => res.json())
+                    .then(count => {
+                        if (count > 0) {
+                            updateNotificationCount(count, true);
+                        }
+                    })
+                    .catch(err => console.error('Error loading notification count:', err));
+            }
+
+            function updateNotificationCount(increment, setAbsolute = false) {
+                const countBadge = document.getElementById("notificationCount");
+                if (setAbsolute) {
+                    countBadge.textContent = increment;
+                } else {
+                    let currentCount = parseInt(countBadge.textContent) || 0;
+                    countBadge.textContent = currentCount + increment;
+                }
+
+                if (parseInt(countBadge.textContent) > 0) {
+                    countBadge.style.display = "inline";
+                } else {
+                    countBadge.style.display = "none";
+                }
+            }
+
+            document.getElementById("notificationBell")?.addEventListener("click", function(e) {
+                e.preventDefault();
+                loadNotifications();
+                const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
+                modal.show();
+            });
+
+            function loadNotifications() {
+                fetch('/Notifications/GetMyNotifications')
+                    .then(res => res.json())
+                    .then(notifications => {
+                        const listDiv = document.getElementById("notificationList");
+
+                        if (notifications.length === 0) {
+                            listDiv.innerHTML = `
+                                <div class="p-4 text-center text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <p>Không có thông báo mới</p>
+                                </div>`;
+                            return;
+                        }
+
+                        const html = notifications.map(n => {
+                            const typeIcon = n.type === "Success" ? "fa-check-circle text-success" :
+                                           n.type === "Overdue" ? "fa-exclamation-triangle text-danger" :
+                                           n.type === "BookAvailable" ? "fa-book text-info" :
+                                           "fa-info-circle text-primary";
+
+                            const timeAgo = getTimeAgo(new Date(n.createdDate));
+                            const unreadClass = n.isRead ? "" : "unread";
+
+                            return `
+                                <div class="notification-item ${unreadClass}" data-id="${n.notificationId}">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <i class="fas ${typeIcon} fa-lg"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1">${n.message}</p>
+                                            <small class="text-muted">${timeAgo}</small>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        }).join('');
+
+                        listDiv.innerHTML = html;
+                        document.getElementById("notificationCount").style.display = "none";
+                    })
+                    .catch(err => console.error('Error loading notifications:', err));
+            }
+
+            function markAllAsRead() {
+                fetch('/Notifications/MarkAllAsRead', { method: 'POST' })
+                    .then(() => {
+                        loadNotifications();
+                        document.getElementById("notificationCount").style.display = "none";
+                    })
+                    .catch(err => console.error('Error marking as read:', err));
+            }
+
+            function getTimeAgo(date) {
+                const seconds = Math.floor((new Date() - date) / 1000);
+                if (seconds < 60) return 'Vừa xong';
+                if (seconds < 3600) return Math.floor(seconds / 60) + ' phút trước';
+                if (seconds < 86400) return Math.floor(seconds / 3600) + ' giờ trước';
+                return Math.floor(seconds / 86400) + ' ngày trước';
+            }
+
+            function showToast(message, type) {
+                const alertClass = type === "Success" ? "alert-success" :
+                                 type === "Overdue" ? "alert-danger" :
+                                 type === "Warning" ? "alert-warning" :
+                                 type === "BookAvailable" ? "alert-info" :
+                                 "alert-info";
+
+                const iconClass = type === "Success" ? "fa-check-circle" :
+                                type === "Overdue" ? "fa-exclamation-triangle" :
+                                type === "Warning" ? "fa-exclamation-circle" :
+                                type === "BookAvailable" ? "fa-book" :
+                                "fa-info-circle";
+
+                const toast = `<div class="alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3" role="alert" style="z-index:9999; min-width: 300px;">
+                    <i class="fas ${iconClass}"></i> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+
+                document.body.insertAdjacentHTML('beforeend', toast);
+
+                setTimeout(() => {
+                    const alerts = document.querySelectorAll('.alert.position-fixed');
+                    if (alerts.length > 0) {
+                        alerts[alerts.length - 1]?.remove();
+                    }
+                }, 5000);
+            }
+
+            function showSystemMessage(title, message, type) {
+                const alertClass = type === "Alert" ? "alert-danger" :
+                                 type === "Warning" ? "alert-warning" :
+                                 "alert-info";
+
+                const toast = `<div class="alert ${alertClass} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x m-3" role="alert" style="z-index:9999; min-width: 400px;">
+                    <h5 class="alert-heading"><i class="fas fa-bullhorn"></i> ${title}</h5>
+                    <p class="mb-0">${message}</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+
+                document.body.insertAdjacentHTML('beforeend', toast);
+
+                setTimeout(() => {
+                    const alerts = document.querySelectorAll('.alert.position-fixed');
+                    if (alerts.length > 0) {
+                        alerts[0]?.remove();
+                    }
+                }, 10000);
+            }
+        </script>
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

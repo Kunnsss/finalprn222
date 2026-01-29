@@ -1,0 +1,84 @@
+﻿<!-- Views/OnlineRentals/RentOnline.cshtml -->
+@model LibraryManagement.ViewModels.OnlineRentalViewModel
+@{
+    ViewData["Title"] = "Thuê sách Online";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="fas fa-laptop"></i> Thuê sách Online</h4>
+            </div>
+            <div class="card-body">
+                <h5 class="mb-3">@Model.BookTitle</h5>
+
+                <form asp-action="RentOnline" method="post">
+                    <input type="hidden" asp-for="BookId" />
+                    <input type="hidden" asp-for="BookTitle" />
+                    <input type="hidden" asp-for="OnlinePrice" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Giá thuê Online</label>
+                        <input type="text" class="form-control" value="@Model.OnlinePrice.ToString("N0") VND" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="AccessDays" class="form-label">Thời hạn truy cập (ngày)</label>
+                        <select asp-for="AccessDays" class="form-select">
+                            <option value="7">7 ngày</option>
+                            <option value="30" selected>30 ngày</option>
+                            <option value="90">90 ngày</option>
+                            <option value="180">180 ngày</option>
+                            <option value="365">365 ngày (1 năm)</option>
+                        </select>
+                        <span asp-validation-for="AccessDays" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Hết hạn vào</label>
+                        <input type="text" class="form-control" id="expiryDate" readonly />
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>Tổng tiền:</strong> @Model.OnlinePrice.ToString("N0") VND
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Lưu ý:</strong>
+                        <ul class="mb-0">
+                            <li>Sau khi thanh toán, bạn sẽ được truy cập link đọc sách online</li>
+                            <li>Link có hiệu lực trong thời gian đã chọn</li>
+                            <li>Bạn có thể truy cập bất cứ lúc nào trong thời hạn</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-credit-card"></i> Tiếp tục thanh toán
+                        </button>
+                        <a asp-controller="Books" asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateExpiryDate() {
+            const days = parseInt(document.getElementById('AccessDays').value) || 0;
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + days);
+            document.getElementById('expiryDate').value = expiryDate.toLocaleDateString('vi-VN');
+        }
+
+        document.getElementById('AccessDays')?.addEventListener('change', updateExpiryDate);
+        updateExpiryDate();
+    </script>
+}

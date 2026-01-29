@@ -1,0 +1,210 @@
+﻿@model IEnumerable<LibraryManagement.Models.RentalTransaction>
+@{
+    ViewData["Title"] = "Sách quá hạn";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="fas fa-exclamation-triangle text-danger"></i> Danh sách sách quá hạn</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-clock"></i> Tổng số sách quá hạn: <strong>@Model.Count()</strong>
+        </h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Mã GD</th>
+                            <th>Người thuê</th>
+                            <th>Sách</th>
+                            <th>Ngày thuê</th>
+                            <th>Hạn trả</th>
+                            <th>Số ngày quá hạn</th>
+                            <th>Tổng tiền</th>
+                            <th>Phí phạt</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rental in Model)
+                        {
+                            var overdueDays = (DateTime.Now - rental.DueDate).Days;
+
+                            <tr class="table-danger">
+                                <td>
+                                    <strong>#@rental.TransactionId</strong>
+                                </td>
+                                <td>
+                                    <i class="fas fa-user"></i> @rental.User?.FullName
+                                    <br />
+                                    <small class="text-muted">@rental.User?.Email</small>
+                                    <br />
+                                    @if (!string.IsNullOrEmpty(rental.User?.PhoneNumber))
+                                    {
+                                        <small class="text-muted">
+                                            <i class="fas fa-phone"></i> @rental.User?.PhoneNumber
+                                        </small>
+                                    }
+                                </td>
+                                <td>
+                                    <i class="fas fa-book"></i> @rental.Book?.Title
+                                    <br />
+                                    <small class="text-muted">@rental.Book?.Author</small>
+                                </td>
+                                <td>
+                                    <i class="far fa-calendar-alt"></i>
+                                    @rental.RentalDate.ToString("dd/MM/yyyy")
+                                    <br />
+                                    <small class="text-muted">@rental.RentalDate.ToString("HH:mm")</small>
+                                </td>
+                                <td>
+                                    <i class="far fa-calendar-check"></i>
+                                    @rental.DueDate.ToString("dd/MM/yyyy")
+                                    <br />
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> Quá hạn
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger fs-6">
+                                        <i class="fas fa-hourglass-end"></i> @overdueDays ngày
+                                    </span>
+                                    <br />
+                                    <small class="text-muted">
+                                        (từ @rental.DueDate.ToString("dd/MM/yyyy"))
+                                    </small>
+                                </td>
+                                <td>
+                                    <strong class="text-primary">@rental.TotalAmount.ToString("N0") đ</strong>
+                                </td>
+                                <td>
+                                    @if (rental.LateFee > 0)
+                                    {
+                                        <strong class="text-danger fs-5">@rental.LateFee.ToString("N0") đ</strong>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning">Chưa tính</span>
+                                    }
+                                </td>
+                                <td>
+                                    <form asp-action="Return" method="post" style="display:inline;">
+                                        <input type="hidden" name="transactionId" value="@rental.TransactionId" />
+                                        <button type="submit" class="btn btn-sm btn-success"
+                                                onclick="return confirm('Xác nhận đã nhận sách trả về?\nPhí phạt sẽ được tính tự động.')">
+                                            <i class="fas fa-undo"></i> Nhận trả
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card bg-light border-danger">
+                        <div class="card-body">
+                            <h5 class="text-center mb-3">
+                                <i class="fas fa-chart-bar"></i> Thống kê sách quá hạn
+                            </h5>
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <h6 class="text-muted">Tổng sách quá hạn</h6>
+                                    <h3 class="text-danger">
+                                        <i class="fas fa-book"></i> @Model.Count()
+                                    </h3>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6 class="text-muted">Tổng tiền thuê</h6>
+                                    <h3 class="text-primary">
+                                        @Model.Sum(r => r.TotalAmount).ToString("N0") đ
+                                    </h3>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6 class="text-muted">Tổng phí phạt</h6>
+                                    <h3 class="text-danger">
+                                        @Model.Sum(r => r.LateFee).ToString("N0") đ
+                                    </h3>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6 class="text-muted">Tổng cộng</h6>
+                                    <h3 class="text-success">
+                                        @(Model.Sum(r => r.TotalAmount) + Model.Sum(r => r.LateFee)).ToString("N0") đ
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-warning mt-4" role="alert">
+                <i class="fas fa-info-circle"></i>
+                <strong>Lưu ý:</strong> Vui lòng liên hệ với người thuê để nhắc nhở trả sách và thu phí phạt.
+                Phí phạt sẽ được tính tự động khi nhận sách trả về.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-success text-center py-5">
+                <i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+                <h4>Tuyệt vời! Không có sách nào quá hạn</h4>
+                <p class="text-muted">Tất cả sách đều được trả đúng hạn hoặc vẫn còn trong thời gian thuê.</p>
+                <a asp-action="AllRentals" class="btn btn-primary mt-3">
+                    <i class="fas fa-clipboard-list"></i> Xem tất cả giao dịch
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert-success, .alert-danger').fadeOut('slow');
+        }, 5000);
+
+        // Highlight rows on hover
+        $('tr').hover(
+            function() {
+                $(this).addClass('shadow-sm');
+            },
+            function() {
+                $(this).removeClass('shadow-sm');
+            }
+        );
+    </script>
+}

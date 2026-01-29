@@ -1,0 +1,141 @@
+﻿@* Views/UserManagement/Create.cshtml *@
+@model LibraryManagement.ViewModels.CreateUserViewModel
+
+@{
+    ViewData["Title"] = "Thêm tài khoản mới";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var roles = ViewBag.Roles as List<LibraryManagement.Models.Role>;
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2><i class="fas fa-user-plus"></i> Thêm tài khoản mới</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Quản lý tài khoản</a></li>
+                    <li class="breadcrumb-item active">Thêm mới</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-plus"></i> Thông tin tài khoản</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <div class="row">
+                            <!-- Tên đăng nhập -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Username" class="form-label">
+                                    <i class="fas fa-user"></i> Tên đăng nhập <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Username" class="form-control" placeholder="Nhập tên đăng nhập" />
+                                <span asp-validation-for="Username" class="text-danger"></span>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label">
+                                    <i class="fas fa-envelope"></i> Email <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Email" class="form-control" placeholder="Nhập email" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Mật khẩu -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Password" class="form-label">
+                                    <i class="fas fa-lock"></i> Mật khẩu <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Password" class="form-control" placeholder="Nhập mật khẩu" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+
+                            <!-- Xác nhận mật khẩu -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label">
+                                    <i class="fas fa-lock"></i> Xác nhận mật khẩu <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="ConfirmPassword" class="form-control" placeholder="Nhập lại mật khẩu" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Họ và tên -->
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label">
+                                <i class="fas fa-id-card"></i> Họ và tên <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="FullName" class="form-control" placeholder="Nhập họ và tên" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <!-- Số điện thoại -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">
+                                    <i class="fas fa-phone"></i> Số điện thoại
+                                </label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="Nhập số điện thoại" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+
+                            <!-- Vai trò -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="RoleId" class="form-label">
+                                    <i class="fas fa-user-tag"></i> Vai trò <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="RoleId" class="form-select">
+                                    <option value="">-- Chọn vai trò --</option>
+                                    @if (roles != null)
+                                    {
+                                        @foreach (var role in roles)
+                                        {
+                                            <option value="@role.RoleId">@role.RoleName</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="RoleId" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Địa chỉ -->
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">
+                                <i class="fas fa-map-marker-alt"></i> Địa chỉ
+                            </label>
+                            <textarea asp-for="Address" class="form-control" rows="3" placeholder="Nhập địa chỉ"></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Lưu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,0 +1,70 @@
+﻿@model List<LibraryManagement.Models.BookReservation>
+@{
+    ViewData["Title"] = "Đặt chỗ của tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2><i class="fas fa-calendar-check"></i> Đặt chỗ của tôi</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Bạn chưa đặt chỗ sách nào.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Sách</th>
+                    <th>Ngày đặt</th>
+                    <th>Hết hạn</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var reservation in Model)
+                {
+                    <tr>
+                        <td>@reservation.Book?.Title</td>
+                        <td>@reservation.ReservationDate.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@reservation.ExpiryDate.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            @if (reservation.Status == "Pending")
+                            {
+                                <span class="badge bg-warning">Đang chờ</span>
+                            }
+                            else if (reservation.Status == "Ready")
+                            {
+                                <span class="badge bg-success">Sẵn sàng</span>
+                            }
+                            else if (reservation.Status == "Cancelled")
+                            {
+                                <span class="badge bg-secondary">Đã hủy</span>
+                            }
+                            else if (reservation.Status == "Expired")
+                            {
+                                <span class="badge bg-danger">Hết hạn</span>
+                            }
+                        </td>
+                        <td>
+                            @if (reservation.Status == "Pending")
+                            {
+                                <form asp-action="Cancel" method="post" class="d-inline">
+                                    <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Bạn có chắc muốn hủy đặt chỗ?')">
+                                        <i class="fas fa-times"></i> Hủy
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

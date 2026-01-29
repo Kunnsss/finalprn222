@@ -1,0 +1,187 @@
+﻿@model IEnumerable<LibraryManagement.Models.ReadingHistoryViewModel>
+
+@{
+    ViewData["Title"] = "Tất cả lịch sử";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">
+                <i class="fas fa-history"></i> Tất cả lịch sử đọc sách
+            </h2>
+
+            <div class="btn-group mb-3" role="group">
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="fas fa-list"></i> Sách đã đọc
+                </a>
+                <a asp-action="AllHistory" class="btn btn-primary active">
+                    <i class="fas fa-history"></i> Tất cả lịch sử
+                </a>
+                <a asp-action="CompletedBooks" class="btn btn-outline-primary">
+                    <i class="fas fa-check-circle"></i> Đã hoàn thành
+                </a>
+                <a asp-action="Statistics" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-bar"></i> Thống kê
+                </a>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Lưu ý:</strong> Trang này hiển thị tất cả lịch sử, bao gồm cả các lần thuê lại cùng một cuốn sách.
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <h4>Bạn chưa có lịch sử</h4>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+                <i class="fas fa-book"></i> Khám phá sách
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="mb-3">
+            <strong>Tổng số bản ghi:</strong> @Model.Count()
+        </div>
+
+        <div class="row">
+            @foreach (var item in Model)
+            {
+                <div class="col-md-12 mb-3">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    @if (!string.IsNullOrEmpty(item.Book?.CoverImage))
+                                    {
+                                        <img src="@item.Book.CoverImage" class="img-fluid rounded" alt="@item.Book.Title" style="max-height: 150px; object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 150px;">
+                                            <i class="fas fa-book fa-3x"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-md-8">
+                                    <h5 class="card-title">
+                                        <a asp-controller="Books" asp-action="Details" asp-route-id="@item.BookId" class="text-decoration-none">
+                                            @item.Book?.Title
+                                        </a>
+                                    </h5>
+                                    <p class="text-muted mb-2">
+                                        <i class="fas fa-user"></i> <strong>Tác giả:</strong> @item.Book?.Author
+                                    </p>
+                                    <p class="text-muted mb-2">
+                                        <i class="fas fa-tag"></i> <strong>Thể loại:</strong> @item.Book?.Category?.CategoryName
+                                    </p>
+                                    <p class="mb-2">
+                                        <i class="fas fa-calendar"></i> <strong>Ngày:</strong> @item.ViewDate.ToString("dd/MM/yyyy HH:mm")
+                                    </p>
+
+                                    @if (item.Source == "Online")
+                                    {
+                                        <p class="mb-2">
+                                            <i class="fas fa-globe"></i> <strong>Loại:</strong> Thuê Online
+                                            @if (item.ExpiryDate.HasValue)
+                                            {
+                                                <br />
+                                
+                                                <small class="text-muted">Hết hạn: @item.ExpiryDate.Value.ToString("dd/MM/yyyy")</small>
+                                            }
+                                        </p>
+                                    }
+                                    else if (item.Source == "Physical")
+                                    {
+                                        <p class="mb-2">
+                                            <i class="fas fa-book"></i> <strong>Loại:</strong> Thuê vật lý
+                                            @if (item.ReturnDate.HasValue)
+                                            {
+                                                <br />
+                                
+                                                <small class="text-muted">Ngày trả: @item.ReturnDate.Value.ToString("dd/MM/yyyy")</small>
+                                            }
+                                            else if (item.DueDate.HasValue)
+                                            {
+                                                <br />
+                                
+                                                <small class="text-muted">Hạn trả: @item.DueDate.Value.ToString("dd/MM/yyyy")</small>
+                                            }
+                                        </p>
+                                    }
+                                    else
+                                    {
+                                        <p class="mb-2">
+                                            <i class="fas fa-eye"></i> <strong>Loại:</strong> Xem trực tuyến
+                                        </p>
+                                    }
+
+                                    @if (item.ViewDuration.HasValue && item.ViewDuration.Value > 0)
+                                    {
+                                        var hours = item.ViewDuration.Value / 3600;
+                                        var minutes = (item.ViewDuration.Value % 3600) / 60;
+                                        <p class="mb-2">
+                                            <i class="fas fa-clock"></i> <strong>Thời gian:</strong>
+                                            @if (hours > 0)
+                                            {
+                                                @hours <text>giờ </text>
+                                            }
+                                            @minutes <text>phút</text>
+                                        </p>
+                                    }
+
+                                    @if (item.IsCompleted)
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Hoàn thành
+                                        </span>
+                                    }
+                                    else if (item.Status == "Renting" || item.Status == "Active")
+                                    {
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-book-open"></i> Đang thuê
+                                        </span>
+                                    }
+                                    else if (item.Status == "Overdue")
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle"></i> Quá hạn
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-book-open"></i> Đang đọc
+                                        </span>
+                                    }
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <a asp-controller="Books" asp-action="Details" asp-route-id="@item.BookId" class="btn btn-primary w-100">
+                                        <i class="fas fa-eye"></i> Chi tiết
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+        }
+</style>

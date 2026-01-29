@@ -1,0 +1,351 @@
+﻿@using LibraryManagement.Models
+@model List<SupportChat>
+@{
+    ViewData["Title"] = "Chat hỗ trợ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* ===== KHU VỰC CHAT - ĐỒNG BỘ VỚI ADMIN ===== */
+    .chat-container {
+        background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+        padding: 20px;
+    }
+
+    .message-wrapper {
+        display: flex;
+        animation: slideIn 0.3s ease;
+    }
+
+    @@keyframes slideIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .user-message {
+        justify-content: flex-end;
+    }
+
+    .admin-message {
+        justify-content: flex-start;
+    }
+
+    .message-bubble {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        position: relative;
+    }
+
+    .user-message .message-bubble {
+        background-color: #0d6efd;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .admin-message .message-bubble {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        color: #212529;
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-time {
+        font-size: 11px;
+        margin-top: 4px;
+    }
+
+    .user-message .message-time {
+        color: rgba(255,255,255,0.8);
+    }
+
+    .admin-message .message-time {
+        color: #6c757d;
+    }
+
+    /* Input Area - ĐỒNG BỘ */
+    #messageInput {
+        border-radius: 25px;
+        padding: 12px 20px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+        #messageInput:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13,110,253,.15);
+            outline: none;
+        }
+
+    #btnSendMessage {
+        border-radius: 25px;
+        padding: 8px 24px;
+        font-weight: 500;
+    }
+
+    /* Scrollbar Styling - ĐỒNG BỘ */
+    #chatMessages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #chatMessages::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    #chatMessages::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+        #chatMessages::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+    /* Loading spinner - ĐỒNG BỘ */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @@keyframes spin {
+        to
+
+    {
+        transform: rotate(360deg);
+    }
+
+    }
+</style>
+
+<div class="container-fluid">
+    <h2 class="mb-4">
+        <i class="fas fa-comments"></i> Chat với Thủ thư
+    </h2>
+
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-tie"></i> Trò chuyện với Thủ thư
+                    </h5>
+                </div>
+
+                <div class="card-body chat-container" style="height: 500px; overflow-y: auto;" id="chatMessages">
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var message in Model)
+                        {
+                            if (message.IsFromUser)
+                            {
+                                <!-- TIN NHẮN CỦA USER - Giống Admin Message -->
+                                <div class="message-wrapper user-message mb-3">
+                                    <div class="message-bubble">
+                                        <p class="mb-1">@message.Message</p>
+                                        <div class="message-time">
+                                            <small><i class="far fa-clock"></i> @message.SentDate.ToString("HH:mm")</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- TIN NHẮN CỦA THỦ THƯ - Giống User Message trong Admin -->
+                                <div class="message-wrapper admin-message mb-3">
+                                    <div class="message-bubble">
+                                        <p class="mb-1">@message.Message</p>
+                                        <div class="message-time">
+                                            <small><i class="far fa-clock"></i> Thủ thư - @message.SentDate.ToString("HH:mm")</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted mt-5">
+                            <i class="fas fa-comments fa-3x mb-3 opacity-50"></i>
+                            <p>Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</p>
+                        </div>
+                    }
+                </div>
+
+                <div class="card-footer bg-white">
+                    <div class="input-group">
+                        <input type="text" class="form-control border-end-0" id="messageInput"
+                               placeholder="Nhập tin nhắn..." />
+                        <button class="btn btn-primary px-4" id="btnSendMessage">
+                            <i class="fas fa-paper-plane"></i> Gửi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        console.log('=== SUPPORT CHAT DEBUG ===');
+
+        // Kiểm tra SignalR connection từ _Layout
+        if (typeof connection === 'undefined') {
+            console.error('SignalR connection not found from _Layout.cshtml');
+        } else {
+            console.log('SignalR connection found');
+        }
+
+        // Nhận phản hồi từ thủ thư
+        if (typeof connection !== 'undefined') {
+            connection.on("ReceiveLibrarianReply", function(data) {
+                console.log('Received librarian reply:', data);
+                addMessageToChat(data.message, false, data.librarianName, data.timestamp);
+                showToast('Bạn có tin nhắn mới từ thủ thư', 'info');
+            });
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            console.log('Sending message:', message);
+
+            if (!message) {
+                alert('Vui lòng nhập tin nhắn');
+                return;
+            }
+
+            try {
+                // 1. Lưu vào database TRƯỚC
+                const response = await fetch('/Support/SendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const result = await response.json();
+                console.log('Save to DB result:', result);
+
+                if (!result.success) {
+                    alert('Lỗi: ' + result.message);
+                    return;
+                }
+
+                // 2. Hiển thị tin nhắn ngay lập tức
+                addMessageToChat(message, true, 'Bạn', new Date());
+                input.value = '';
+
+                // 3. Gửi qua SignalR để thông báo cho admin (nếu có connection)
+                if (typeof connection !== 'undefined') {
+                    try {
+                        await connection.invoke("SendMessageToLibrarian", message);
+                        console.log('Sent via SignalR successfully');
+                    } catch (err) {
+                        console.log('SignalR send failed (but message saved):', err);
+                    }
+                }
+
+            } catch (err) {
+                console.error('Error sending message:', err);
+                alert('Có lỗi xảy ra khi gửi tin nhắn');
+            }
+        }
+
+        function addMessageToChat(message, isFromUser, sender, timestamp) {
+            const chatDiv = document.getElementById('chatMessages');
+            const time = new Date(timestamp).toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const messageHtml = isFromUser ? `
+                <div class="message-wrapper user-message mb-3">
+                    <div class="message-bubble">
+                        <p class="mb-1">${escapeHtml(message)}</p>
+                        <div class="message-time">
+                            <small><i class="far fa-clock"></i> ${time}</small>
+                        </div>
+                    </div>
+                </div>
+            ` : `
+                <div class="message-wrapper admin-message mb-3">
+                    <div class="message-bubble">
+                        <p class="mb-1">${escapeHtml(message)}</p>
+                        <div class="message-time">
+                            <small><i class="far fa-clock"></i> Thủ thư - ${time}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            chatDiv.insertAdjacentHTML('beforeend', messageHtml);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message, type) {
+            const bgColor = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8';
+            const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                z-index: 9999;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            `;
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        // Send button click
+        document.getElementById('btnSendMessage').addEventListener('click', sendMessage);
+
+        // Enter để gửi
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto scroll to bottom on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatDiv = document.getElementById('chatMessages');
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        });
+    </script>
+}

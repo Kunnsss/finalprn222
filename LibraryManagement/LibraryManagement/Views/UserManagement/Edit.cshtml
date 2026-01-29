@@ -1,0 +1,141 @@
+﻿@* Views/UserManagement/Edit.cshtml *@
+@model LibraryManagement.ViewModels.EditUserViewModel
+
+@{
+    ViewData["Title"] = "Chỉnh sửa tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var roles = ViewBag.Roles as List<LibraryManagement.Models.Role>;
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2><i class="fas fa-user-edit"></i> Chỉnh sửa tài khoản</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Quản lý tài khoản</a></li>
+                    <li class="breadcrumb-item active">Chỉnh sửa</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-edit"></i> Chỉnh sửa thông tin -
+                        <strong>@Model.Username</strong>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <input type="hidden" asp-for="UserId" />
+                        <input type="hidden" asp-for="Username" />
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">
+                                <i class="fas fa-envelope"></i> Email <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Email" class="form-control" placeholder="Nhập email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <!-- Họ và tên -->
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label">
+                                <i class="fas fa-id-card"></i> Họ và tên <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="FullName" class="form-control" placeholder="Nhập họ và tên" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <!-- Số điện thoại -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">
+                                    <i class="fas fa-phone"></i> Số điện thoại
+                                </label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="Nhập số điện thoại" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+
+                            <!-- Vai trò -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="RoleId" class="form-label">
+                                    <i class="fas fa-user-tag"></i> Vai trò <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="RoleId" class="form-select">
+                                    @if (roles != null)
+                                    {
+                                        @foreach (var role in roles)
+                                        {
+                                            <option value="@role.RoleId">@role.RoleName</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="RoleId" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Địa chỉ -->
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">
+                                <i class="fas fa-map-marker-alt"></i> Địa chỉ
+                            </label>
+                            <textarea asp-for="Address" class="form-control" rows="3" placeholder="Nhập địa chỉ"></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+
+                        <!-- Trạng thái -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                                <label asp-for="IsActive" class="form-check-label">
+                                    <i class="fas fa-toggle-on"></i> Tài khoản hoạt động
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                Bỏ chọn để vô hiệu hóa tài khoản này
+                            </small>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Cập nhật
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Đổi mật khẩu -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    <p class="mb-2">
+                        <i class="fas fa-info-circle text-info"></i>
+                        Muốn đổi mật khẩu cho tài khoản này?
+                    </p>
+                    <a asp-action="ChangePassword" asp-route-id="@Model.UserId" class="btn btn-primary btn-sm">
+                        <i class="fas fa-key"></i> Đổi mật khẩu
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

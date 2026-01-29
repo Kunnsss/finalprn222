@@ -1,0 +1,135 @@
+﻿@* Views/Announcements/Index.cshtml - FIXED RAZOR SYNTAX *@
+@model IEnumerable<LibraryManagement.Models.SystemAnnouncement>
+@{
+    ViewData["Title"] = "Thông báo Hệ thống";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2>
+                <i class="fas fa-bullhorn"></i> Thông báo Hệ thống
+            </h2>
+            <p class="text-muted">Các thông báo quan trọng từ thư viện</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="row">
+            @foreach (var announcement in Model)
+            {
+                var typeClass = announcement.Type == "Alert" ? "danger" :
+                announcement.Type == "Warning" ? "warning" : "info";
+                var typeIcon = announcement.Type == "Alert" ? "fa-exclamation-circle" :
+                announcement.Type == "Warning" ? "fa-exclamation-triangle" : "fa-info-circle";
+                var borderClass = announcement.Type == "Alert" ? "border-danger border-3" :
+                announcement.Type == "Warning" ? "border-warning border-2" : "border-info";
+
+                <div class="col-md-12 mb-4">
+                    <div class="card @borderClass shadow-sm announcement-card">
+                        <div class="card-header bg-@typeClass text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas @typeIcon"></i> @announcement.Title
+                                </h5>
+                                <span class="badge bg-light text-@typeClass">@announcement.Type</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text mb-3" style="white-space: pre-line;">@announcement.Content</p>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted small">
+                                    <i class="fas fa-user"></i> @(announcement.Creator?.Username ?? "Admin")
+                                    <span class="mx-2">|</span>
+                                    <i class="fas fa-clock"></i> @announcement.CreatedDate.ToString("dd/MM/yyyy HH:mm")
+                                    @if (announcement.ExpiryDate.HasValue)
+                                    {
+                                        <span class="mx-2">|</span>
+                                        <i class="fas fa-calendar-times"></i>
+                                        <text>Hết hạn: @announcement.ExpiryDate.Value.ToString("dd/MM/yyyy HH:mm")</text>
+                                    }
+                                    else
+                                    {
+                                        <span class="mx-2">|</span>
+                                        <i class="fas fa-infinity"></i>
+                                        <text>Không giới hạn</text>
+                                    }
+                                </div>
+                                <a asp-action="Details" asp-route-id="@announcement.AnnouncementId" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> Chi tiết
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center py-5">
+            <i class="fas fa-inbox fa-4x mb-3"></i>
+            <h4>Không có thông báo nào</h4>
+            <p class="text-muted">Hiện tại chưa có thông báo mới từ thư viện.</p>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Auto dismiss alerts
+        setTimeout(function() {
+            $('.alert-dismissible').fadeOut('slow');
+        }, 5000);
+
+        // Animation for announcement cards
+        $('.announcement-card').hover(
+            function() {
+                $(this).addClass('shadow-lg');
+                $(this).css('transform', 'translateY(-3px)');
+            },
+            function() {
+                $(this).removeClass('shadow-lg');
+                $(this).css('transform', 'translateY(0)');
+            }
+        );
+    </script>
+}
+
+<style>
+    .announcement-card {
+        transition: all 0.3s ease;
+    }
+
+    .card-header h5 {
+        font-weight: 600;
+    }
+
+    .card-text {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .border-3 {
+        border-width: 3px !important;
+    }
+</style>

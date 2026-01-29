@@ -1,0 +1,271 @@
+@{
+    ViewData["Title"] = "Thông báo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-bell"></i> Thông báo của tôi</h2>
+                <button class="btn btn-primary" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double"></i> Đánh dấu tất cả đã đọc
+                </button>
+            </div>
+
+            <!-- Notification List -->
+            <div id="notificationList">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // SignalR Connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/libraryHub")
+            .build();
+
+        // Nhận thông báo realtime
+        connection.on("ReceiveNotification", function(data) {
+            showToast(data.message, data.type);
+            loadNotifications();
+        });
+
+        // Nhận thông báo hệ thống
+        connection.on("SystemMessage", function(data) {
+            const type = data.type.toLowerCase();
+            showSystemMessage(data.title, data.message, type);
+            loadNotifications();
+        });
+
+        // Nhận thông báo sách có sẵn
+        connection.on("BookNowAvailable", function(data) {
+            showToast(data.message, 'success');
+            loadNotifications();
+        });
+
+        connection.start()
+            .then(() => {
+                console.log('SignalR Connected');
+                loadNotifications();
+            })
+            .catch(err => console.error('SignalR Error:', err));
+
+        // Load danh sách thông báo
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/Notifications/GetMyNotifications');
+                const notifications = await response.json();
+                
+                const listDiv = document.getElementById('notificationList');
+                
+                if (notifications.length === 0) {
+                    listDiv.innerHTML = `
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-bell-slash fa-3x mb-3"></i>
+                            <p>Bạn chưa có thông báo nào</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '<div class="list-group">';
+                
+                notifications.forEach(notif => {
+                    const date = new Date(notif.createdDate);
+                    const timeAgo = getTimeAgo(date);
+                    const icon = getNotificationIcon(notif.type);
+                    const bgClass = notif.isRead ? '' : 'bg-light';
+                    
+                    html += `
+                        <div class="list-group-item ${bgClass}" data-id="${notif.notificationId}">
+                            <div class="d-flex w-100 justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-${icon} me-2 ${getIconColor(notif.type)}"></i>
+                                        <h6 class="mb-0">${notif.title}</h6>
+                                        ${!notif.isRead ? '<span class="badge bg-primary ms-2">Mới</span>' : ''}
+                                    </div>
+                                    <p class="mb-1">${notif.message}</p>
+                                    <small class="text-muted">
+                                        <i class="far fa-clock"></i> ${timeAgo}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                listDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                document.getElementById('notificationList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Có lỗi khi tải thông báo
+                    </div>
+                `;
+            }
+        }
+
+        // Đánh dấu tất cả đã đọc
+        async function markAllAsRead() {
+            try {
+                const response = await fetch('/Notifications/MarkAllAsRead', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showToast('Đã đánh dấu tất cả thông báo là đã đọc', 'success');
+                    loadNotifications();
+                    
+                    // Cập nhật badge trên navbar
+                    const badge = document.querySelector('.notification-badge');
+                    if (badge) badge.textContent = '0';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Có lỗi xảy ra', 'error');
+            }
+        }
+
+        // Helper functions
+        function getNotificationIcon(type) {
+            const icons = {
+                'Info': 'info-circle',
+                'Warning': 'exclamation-triangle',
+                'Alert': 'exclamation-circle',
+                'Success': 'check-circle',
+                'BookAvailable': 'book',
+                'Overdue': 'clock',
+                'Reservation': 'bookmark'
+            };
+            return icons[type] || 'bell';
+        }
+
+        function getIconColor(type) {
+            const colors = {
+                'Info': 'text-info',
+                'Warning': 'text-warning',
+                'Alert': 'text-danger',
+                'Success': 'text-success',
+                'BookAvailable': 'text-primary',
+                'Overdue': 'text-danger',
+                'Reservation': 'text-warning'
+            };
+            return colors[type] || 'text-secondary';
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            
+            if (seconds < 60) return 'Vừa xong';
+            if (seconds < 3600) return Math.floor(seconds / 60) + ' phút trước';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + ' giờ trước';
+            if (seconds < 604800) return Math.floor(seconds / 86400) + ' ngày trước';
+            
+            return date.toLocaleDateString('vi-VN');
+        }
+
+        function showToast(message, type) {
+            const bgColor = type === 'success' ? '#28a745' : 
+                           type === 'error' ? '#dc3545' : 
+                           type === 'warning' ? '#ffc107' : '#17a2b8';
+            const icon = type === 'success' ? 'check-circle' : 
+                        type === 'error' ? 'exclamation-circle' : 
+                        type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                z-index: 9999;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                animation: slideIn 0.3s ease-out;
+            `;
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+
+        function showSystemMessage(title, message, type) {
+            const bgColor = type === 'info' ? '#17a2b8' : 
+                           type === 'warning' ? '#ffc107' : '#dc3545';
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                z-index: 10000;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                max-width: 500px;
+                width: 90%;
+            `;
+
+            modal.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="background: ${bgColor}; color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <h4><i class="fas fa-bullhorn"></i> ${title}</h4>
+                    </div>
+                    <p style="font-size: 16px; margin-bottom: 20px;">${message}</p>
+                    <button class="btn btn-primary" onclick="this.closest('[style]').remove()">Đã hiểu</button>
+                </div>
+            `;
+
+            // Backdrop
+            const backdrop = document.createElement('div');
+            backdrop.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 9999;
+            `;
+            backdrop.onclick = () => {
+                backdrop.remove();
+                modal.remove();
+            };
+
+            document.body.appendChild(backdrop);
+            document.body.appendChild(modal);
+        }
+    </script>
+
+    <style>
+        @@keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+}

@@ -1,0 +1,40 @@
+﻿<!-- Views/OnlineRentals/AccessBook.cshtml -->
+@model LibraryManagement.Models.OnlineRentalTransaction
+@{
+    ViewData["Title"] = "Truy cập sách";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-book-open"></i> Truy cập sách Online</h4>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="mb-4">@Model.Book.Title</h3>
+
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h5>Thanh toán thành công!</h5>
+                    <p>Bạn có thể truy cập sách đến ngày @Model.ExpiryDate.ToString("dd/MM/yyyy")</p>
+                </div>
+
+                <div class="mb-4">
+                    <a href="@ViewBag.AccessLink" target="_blank" class="btn btn-primary btn-lg">
+                        <i class="fas fa-external-link-alt"></i> Mở sách và đọc ngay
+                    </a>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Lưu ý:</strong> Link truy cập này chỉ dành cho bạn. Vui lòng không chia sẻ cho người khác.
+                </div>
+
+                <a asp-action="MyOnlineRentals" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

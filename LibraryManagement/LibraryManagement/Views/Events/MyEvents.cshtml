@@ -1,0 +1,344 @@
+﻿@* Views/Events/MyEvents.cshtml - Sự kiện đã đăng ký của User (CÓ NÚT HỦY) *@
+@model IEnumerable<LibraryManagement.Models.EventRegistration>
+@{
+    ViewData["Title"] = "Sự kiện của tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-list-alt"></i> Sự kiện của tôi
+            </h2>
+            <p class="text-muted">Danh sách các sự kiện bạn đã đăng ký</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a asp-action="Index" class="btn btn-primary">
+                <i class="fas fa-calendar-alt"></i> Tất cả sự kiện
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model != null && Model.Any())
+    {
+        <!-- Tabs -->
+        <ul class="nav nav-pills mb-4" id="eventsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="upcoming-tab" data-bs-toggle="pill" data-bs-target="#upcoming" type="button">
+                    <i class="fas fa-clock"></i> Sắp diễn ra
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="past-tab" data-bs-toggle="pill" data-bs-target="#past" type="button">
+                    <i class="fas fa-history"></i> Đã diễn ra
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cancelled-tab" data-bs-toggle="pill" data-bs-target="#cancelled" type="button">
+                    <i class="fas fa-times-circle"></i> Đã hủy
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="eventsTabContent">
+            <!-- Upcoming Events -->
+            <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+                @{
+                    var upcomingEvents = Model.Where(r => r.Event != null && r.Event.EventDate >= DateTime.Now && r.Status == "Registered").ToList();
+                }
+
+                @if (upcomingEvents.Any())
+                {
+                    <div class="row">
+                        @foreach (var registration in upcomingEvents)
+                        {
+                            var evt = registration.Event;
+                            var hoursUntilEvent = (evt.EventDate - DateTime.Now).TotalHours;
+                            var canCancel = hoursUntilEvent >= 24;
+                            var isNearby = (evt.EventDate - DateTime.Now).TotalDays <= 3;
+
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card h-100 @(isNearby ? "border-warning" : "")">
+                                    <div class="card-header @(isNearby ? "bg-warning" : "bg-success") text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-calendar-day"></i> @evt.EventName
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="text-muted small mb-2">
+                                            @(string.IsNullOrEmpty(evt.Description) ? "Không có mô tả" : (evt.Description.Length > 80 ? evt.Description.Substring(0, 80) + "..." : evt.Description))
+                                        </p>
+
+                                        <div class="mb-3">
+                                            <p class="mb-1">
+                                                <i class="fas fa-clock text-primary"></i>
+                                                <small><strong>@evt.EventDate.ToString("dd/MM/yyyy HH:mm")</strong></small>
+                                            </p>
+                                            <p class="mb-1">
+                                                <i class="fas fa-map-marker-alt text-danger"></i>
+                                                <small>@(string.IsNullOrEmpty(evt.Location) ? "Chưa xác định" : evt.Location)</small>
+                                            </p>
+                                            <p class="mb-1">
+                                                <i class="fas fa-ticket-alt text-success"></i>
+                                                <small>Đăng ký: @registration.RegistrationDate.ToString("dd/MM/yyyy")</small>
+                                            </p>
+                                            <p class="mb-0">
+                                                <i class="fas fa-users text-info"></i>
+                                                <small>@evt.CurrentParticipants/@(evt.MaxParticipants?.ToString() ?? "∞") người</small>
+                                            </p>
+                                        </div>
+
+                                        @if (isNearby)
+                                        {
+                                            <div class="alert alert-warning py-2 mb-2">
+                                                <small><i class="fas fa-exclamation-circle"></i> Sắp diễn ra!</small>
+                                            </div>
+                                        }
+
+                                        @if (!canCancel && hoursUntilEvent > 0)
+                                        {
+                                            <div class="alert alert-info py-2 mb-2">
+                                                <small><i class="fas fa-info-circle"></i> Không thể hủy (còn @Math.Round(hoursUntilEvent, 1)h)</small>
+                                            </div>
+                                        }
+
+                                        <div class="d-grid gap-2">
+                                            <a asp-action="Details" asp-route-id="@evt.EventId" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-info-circle"></i> Chi tiết
+                                            </a>
+
+                                            @if (canCancel)
+                                            {
+                                                <form asp-action="CancelRegistration" method="post" class="d-inline" onsubmit="return confirmCancel(event, '@evt.EventName', @hoursUntilEvent);">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="registrationId" value="@registration.RegistrationId" />
+                                                    <button type="submit" class="btn btn-sm btn-danger w-100">
+                                                        <i class="fas fa-times-circle"></i> Hủy đăng ký
+                                                    </button>
+                                                </form>
+                                                <small class="text-muted text-center">
+                                                    <i class="fas fa-clock"></i> Có thể hủy đến @evt.EventDate.AddHours(-24).ToString("dd/MM HH:mm")
+                                                </small>
+                                            }
+                                            else if (hoursUntilEvent > 0)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-secondary w-100" disabled>
+                                                    <i class="fas fa-lock"></i> Không thể hủy (dưới 24h)
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <h5>Chưa có sự kiện sắp diễn ra</h5>
+                        <p class="text-muted">Bạn chưa đăng ký sự kiện nào sắp diễn ra.</p>
+                        <a asp-action="Index" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Khám phá sự kiện
+                        </a>
+                    </div>
+                }
+            </div>
+
+            <!-- Past Events -->
+            <div class="tab-pane fade" id="past" role="tabpanel">
+                @{
+                    var pastEvents = Model.Where(r => r.Event != null && r.Event.EventDate < DateTime.Now && r.Status != "Cancelled").ToList();
+                }
+
+                @if (pastEvents.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Sự kiện</th>
+                                    <th>Thời gian</th>
+                                    <th>Địa điểm</th>
+                                    <th>Trạng thái</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var registration in pastEvents.OrderByDescending(r => r.Event.EventDate))
+                                {
+                                    var evt = registration.Event;
+                                    <tr>
+                                        <td>
+                                            <strong>@evt.EventName</strong><br />
+                                            <small class="text-muted">Đăng ký: @registration.RegistrationDate.ToString("dd/MM/yyyy")</small>
+                                        </td>
+                                        <td>@evt.EventDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>@(evt.Location ?? "Chưa xác định")</td>
+                                        <td>
+                                            @if (registration.Status == "Attended")
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> Đã tham dự
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-clock"></i> Đã đăng ký
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a asp-action="Details" asp-route-id="@evt.EventId" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info text-center py-5">
+                        <i class="fas fa-history fa-3x mb-3"></i>
+                        <h5>Chưa có sự kiện đã diễn ra</h5>
+                        <p class="text-muted">Bạn chưa tham gia sự kiện nào.</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Cancelled Events -->
+            <div class="tab-pane fade" id="cancelled" role="tabpanel">
+                @{
+                    var cancelledEvents = Model.Where(r => r.Status == "Cancelled").ToList();
+                }
+
+                @if (cancelledEvents.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Sự kiện</th>
+                                    <th>Thời gian sự kiện</th>
+                                    <th>Ngày đăng ký</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var registration in cancelledEvents.OrderByDescending(r => r.RegistrationDate))
+                                {
+                                    var evt = registration.Event;
+                                    if (evt != null)
+                                    {
+                                        <tr class="table-secondary">
+                                            <td>
+                                                <strong class="text-muted">@evt.EventName</strong>
+                                            </td>
+                                            <td>@evt.EventDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>@registration.RegistrationDate.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle"></i> Đã hủy
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info text-center py-5">
+                        <i class="fas fa-smile fa-3x mb-3"></i>
+                        <h5>Không có sự kiện đã hủy</h5>
+                        <p class="text-muted">Bạn chưa hủy sự kiện nào.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center py-5">
+            <i class="fas fa-calendar-times fa-4x mb-4"></i>
+            <h4>Bạn chưa đăng ký sự kiện nào</h4>
+            <p class="text-muted mb-4">Khám phá và tham gia các sự kiện thú vị tại thư viện!</p>
+            <a asp-action="Index" class="btn btn-primary btn-lg">
+                <i class="fas fa-search"></i> Khám phá sự kiện
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Confirm cancel with event name
+        function confirmCancel(event, eventName, hoursUntil) {
+            const message = `Bạn có chắc muốn hủy đăng ký sự kiện "${eventName}"?\n\nSự kiện sẽ diễn ra sau ${Math.round(hoursUntil)} giờ nữa.`;
+
+            if (!confirm(message)) {
+                event.preventDefault();
+                return false;
+            }
+            return true;
+        }
+
+        // Auto dismiss alerts
+        setTimeout(function() {
+            $('.alert-dismissible').fadeOut('slow');
+        }, 5000);
+
+        // Count badges
+        $(document).ready(function() {
+            var upcomingCount = $('#upcoming .card').length;
+            var pastCount = $('#past tbody tr').length;
+            var cancelledCount = $('#cancelled tbody tr').length;
+
+            if (upcomingCount > 0) {
+                $('#upcoming-tab').append(' <span class="badge bg-danger">' + upcomingCount + '</span>');
+            }
+            if (pastCount > 0) {
+                $('#past-tab').append(' <span class="badge bg-secondary">' + pastCount + '</span>');
+            }
+            if (cancelledCount > 0) {
+                $('#cancelled-tab').append(' <span class="badge bg-danger">' + cancelledCount + '</span>');
+            }
+        });
+    </script>
+}
+
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+</style>

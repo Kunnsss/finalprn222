@@ -1,0 +1,296 @@
+﻿@* Views/Events/Details.cshtml - Chi tiết sự kiện *@
+@model LibraryManagement.Models.LibraryEvent
+@{
+    ViewData["Title"] = Model.EventName;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isRegistered = ViewBag.IsRegistered ?? false;
+    var registrationStatus = ViewBag.RegistrationStatus as string;
+    var registrationId = ViewBag.RegistrationId ?? 0;
+    var registeredCount = ViewBag.RegisteredCount ?? 0;
+
+    var isUpcoming = Model.EventDate >= DateTime.Now;
+    var isPast = Model.EventDate < DateTime.Now;
+    var isFull = Model.MaxParticipants.HasValue && Model.CurrentParticipants >= Model.MaxParticipants.Value;
+    var availableSlots = Model.MaxParticipants.HasValue ? Model.MaxParticipants.Value - Model.CurrentParticipants : 0;
+    var isNearby = isUpcoming && (Model.EventDate - DateTime.Now).TotalDays <= 3;
+    var canCancel = isRegistered && isUpcoming && (Model.EventDate - DateTime.Now).TotalHours >= 24;
+}
+
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        </a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Event Details -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header @(isPast ? "bg-secondary" : isNearby ? "bg-warning" : isFull ? "bg-danger" : "bg-primary") text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-calendar-alt"></i> @Model.EventName
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Status Badges -->
+                    <div class="mb-3">
+                        @if (isPast)
+                        {
+                            <span class="badge bg-secondary fs-6">
+                                <i class="fas fa-check"></i> Đã diễn ra
+                            </span>
+                        }
+                        else if (isNearby)
+                        {
+                            <span class="badge bg-warning text-dark fs-6">
+                                <i class="fas fa-exclamation-circle"></i> Sắp diễn ra
+                            </span>
+                        }
+
+                        @if (isFull)
+                        {
+                            <span class="badge bg-danger fs-6">
+                                <i class="fas fa-users"></i> Đã đầy
+                            </span>
+                        }
+                        else if (isUpcoming && availableSlots <= 5 && availableSlots > 0)
+                        {
+                            <span class="badge bg-warning text-dark fs-6">
+                                <i class="fas fa-hourglass-half"></i> Còn @availableSlots chỗ
+                            </span>
+                        }
+
+                        @if (isRegistered)
+                        {
+                            if (registrationStatus == "Registered")
+                            {
+                                <span class="badge bg-success fs-6">
+                                    <i class="fas fa-check-circle"></i> Đã đăng ký
+                                </span>
+                            }
+                            else if (registrationStatus == "Attended")
+                            {
+                                <span class="badge bg-info fs-6">
+                                    <i class="fas fa-user-check"></i> Đã tham dự
+                                </span>
+                            }
+                            else if (registrationStatus == "Cancelled")
+                            {
+                                <span class="badge bg-danger fs-6">
+                                    <i class="fas fa-times-circle"></i> Đã hủy
+                                </span>
+                            }
+                        }
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-info-circle text-primary"></i> Mô tả</h5>
+                        <p class="text-muted">
+                            @if (string.IsNullOrEmpty(Model.Description))
+                            {
+                                <em>Không có mô tả cho sự kiện này.</em>
+                            }
+                            else
+                            {
+                                @Model.Description
+                            }
+                        </p>
+                    </div>
+
+                    <hr />
+
+                    <!-- Event Information -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-clock text-primary"></i> Thời gian</h6>
+                            <p class="ms-4">
+                                <strong>@Model.EventDate.ToString("dddd, dd/MM/yyyy")</strong><br />
+                                <strong>@Model.EventDate.ToString("HH:mm")</strong>
+                            </p>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-map-marker-alt text-danger"></i> Địa điểm</h6>
+                            <p class="ms-4">
+                                @if (string.IsNullOrEmpty(Model.Location))
+                                {
+                                    <em>Chưa xác định</em>
+                                }
+                                else
+                                {
+                                    @Model.Location
+                                }
+                            </p>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-users text-success"></i> Số lượng tham gia</h6>
+                            <p class="ms-4">
+                                <strong>@Model.CurrentParticipants</strong> / @(Model.MaxParticipants?.ToString() ?? "Không giới hạn") người
+                            </p>
+                            @if (isUpcoming && !isFull && Model.MaxParticipants.HasValue)
+                            {
+                                var percentage = (Model.CurrentParticipants * 100.0 / Model.MaxParticipants.Value);
+                                var percentageString = percentage.ToString("F2");
+                                var percentageDisplay = percentage.ToString("F0");
+
+                                <div class="progress ms-4" style="height: 20px;">
+                                    <div class="progress-bar @(availableSlots <= 5 ? "bg-warning" : "bg-success")"
+                                         role="progressbar"
+                                         style="width: @percentageString%">
+                                        @percentageDisplay%
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-user text-info"></i> Người tạo</h6>
+                            <p class="ms-4">
+                                @(Model.Creator?.Username ?? "Unknown")<br />
+                                <small class="text-muted">Tạo ngày: @Model.CreatedDate.ToString("dd/MM/yyyy")</small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registration Card -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-ticket-alt"></i> Đăng ký tham gia
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (isPast)
+                    {
+                        <div class="alert alert-secondary mb-0">
+                            <i class="fas fa-info-circle"></i> Sự kiện đã diễn ra
+                        </div>
+                    }
+                    else if (isRegistered && registrationStatus == "Registered")
+                    {
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> Bạn đã đăng ký sự kiện này
+                        </div>
+
+                        if (canCancel)
+                        {
+                            <form asp-action="CancelRegistration" method="post" onsubmit="return confirm('Bạn có chắc muốn hủy đăng ký?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="registrationId" value="@registrationId" />
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-times-circle"></i> Hủy đăng ký
+                                </button>
+                                <small class="text-muted d-block mt-2">
+                                    * Chỉ có thể hủy trước 24h
+                                </small>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning mb-0">
+                                <i class="fas fa-exclamation-triangle"></i> Không thể hủy đăng ký (nhỏ hơn 24h trước sự kiện)
+                            </div>
+                        }
+                    }
+                    else if (isFull)
+                    {
+                        <div class="alert alert-danger mb-0">
+                            <i class="fas fa-users"></i> Sự kiện đã đầy, không thể đăng ký
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-action="Register" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="eventId" value="@Model.EventId" />
+
+                            <div class="mb-3">
+                                <p><strong>Còn @availableSlots chỗ trống</strong></p>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100 btn-lg">
+                                <i class="fas fa-user-plus"></i> Đăng ký ngay
+                            </button>
+                        </form>
+
+                        <hr />
+
+                        <div class="text-muted small">
+                            <p class="mb-1"><i class="fas fa-info-circle"></i> Lưu ý:</p>
+                            <ul class="ps-3 mb-0">
+                                <li>Miễn phí tham gia</li>
+                                <li>Có thể hủy trước 24h</li>
+                                <li>Vui lòng đến đúng giờ</li>
+                            </ul>
+                        </div>
+                    }
+                </div>
+
+                <!-- Statistics -->
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">
+                            <i class="fas fa-users"></i> Đã đăng ký
+                        </span>
+                        <span class="badge bg-primary">@registeredCount người</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto dismiss alerts
+        setTimeout(function() {
+            $('.alert-dismissible').fadeOut('slow');
+        }, 5000);
+
+        // Confirmation for registration
+        $('form[asp-action="Register"]').submit(function(e) {
+            if (!confirm('Bạn có chắc muốn đăng ký tham gia sự kiện này?')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
+}
+
+<style>
+    .sticky-top {
+        position: sticky;
+    }
+
+    .card {
+        border-radius: 10px;
+    }
+
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+</style>

@@ -1,0 +1,201 @@
+﻿@* Views/UserManagement/Details.cshtml *@
+@model LibraryManagement.ViewModels.UserManagementViewModel
+
+@{
+    ViewData["Title"] = "Chi tiết tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2><i class="fas fa-user"></i> Chi tiết tài khoản</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Quản lý tài khoản</a></li>
+                    <li class="breadcrumb-item active">Chi tiết</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-id-card"></i> Thông tin chi tiết -
+                        <strong>@Model.Username</strong>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-hashtag"></i> Mã người dùng:
+                        </div>
+                        <div class="col-md-8">
+                            @Model.UserId
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-user"></i> Tên đăng nhập:
+                        </div>
+                        <div class="col-md-8">
+                            <strong>@Model.Username</strong>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-id-card"></i> Họ và tên:
+                        </div>
+                        <div class="col-md-8">
+                            @Model.FullName
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-envelope"></i> Email:
+                        </div>
+                        <div class="col-md-8">
+                            <a href="mailto:@Model.Email">@Model.Email</a>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-phone"></i> Số điện thoại:
+                        </div>
+                        <div class="col-md-8">
+                            @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                            {
+                                <a href="tel:@Model.PhoneNumber">@Model.PhoneNumber</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Chưa cập nhật</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-map-marker-alt"></i> Địa chỉ:
+                        </div>
+                        <div class="col-md-8">
+                            @if (!string.IsNullOrEmpty(Model.Address))
+                            {
+                                @Model.Address
+                            }
+                            else
+                            {
+                                <span class="text-muted">Chưa cập nhật</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-user-tag"></i> Vai trò:
+                        </div>
+                        <div class="col-md-8">
+                            @if (Model.RoleName == "Admin")
+                            {
+                                <span class="badge bg-danger fs-6">@Model.RoleName</span>
+                            }
+                            else if (Model.RoleName == "Staff")
+                            {
+                                <span class="badge bg-warning fs-6">@Model.RoleName</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info fs-6">@Model.RoleName</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-toggle-on"></i> Trạng thái:
+                        </div>
+                        <div class="col-md-8">
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success fs-6">
+                                    <i class="fas fa-check-circle"></i> Hoạt động
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary fs-6">
+                                    <i class="fas fa-ban"></i> Bị khóa
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold text-muted">
+                            <i class="fas fa-calendar-alt"></i> Ngày tạo:
+                        </div>
+                        <div class="col-md-8">
+                            @Model.CreatedDate.ToString("dd/MM/yyyy HH:mm:ss")
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Action buttons -->
+                    <div class="d-flex justify-content-between flex-wrap gap-2">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại
+                        </a>
+                        <div class="btn-group">
+                            <a asp-action="Edit" asp-route-id="@Model.UserId" class="btn btn-warning">
+                                <i class="fas fa-edit"></i> Sửa
+                            </a>
+                            <a asp-action="ChangePassword" asp-route-id="@Model.UserId" class="btn btn-primary">
+                                <i class="fas fa-key"></i> Đổi mật khẩu
+                            </a>
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="fas fa-trash"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Xác nhận xóa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa người dùng <strong>@Model.Username</strong>?</p>
+                <p class="text-muted">
+                    <small>
+                        <i class="fas fa-info-circle"></i>
+                        Nếu người dùng có giao dịch, tài khoản sẽ bị vô hiệu hóa thay vì xóa hoàn toàn.
+                    </small>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <form asp-action="Delete" asp-route-id="@Model.UserId" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">Xác nhận xóa</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
