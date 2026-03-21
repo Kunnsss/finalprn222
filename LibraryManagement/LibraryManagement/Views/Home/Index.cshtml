@@ -1,4 +1,4 @@
-﻿<!-- Views/Home/Index.cshtml -->
+<!-- Views/Home/Index.cshtml -->
 @using LibraryManagement.Models
 @model IEnumerable<LibraryManagement.Models.Book>
 
@@ -7,91 +7,82 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="jumbotron bg-light p-5 rounded-3 mb-4">
-    <h1 class="display-4">
-        <i class="fas fa-book-reader"></i> Chào mừng đến với Thư viện
+<div class="lm-hero mb-4">
+    <h1 class="h2 fw-bold mb-2" style="letter-spacing:-0.03em;">
+        <i class="fas fa-book-reader text-primary"></i> Chào mừng đến thư viện
     </h1>
-    <p class="lead">Hệ thống quản lý thư viện hiện đại với khả năng thuê sách vật lý và online</p>
-    <hr class="my-4">
-    <div class="row text-center">
+    <p class="text-muted mb-4 mb-md-5">Thuê sách vật lý &amp; online — giao diện gọn gàng, dễ tìm.</p>
+    <div class="row g-3">
         <div class="col-md-4">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h3>@ViewBag.TotalBooks</h3>
-                    <p>Tổng số sách</p>
-                </div>
+            <div class="lm-stat">
+                <h3>@ViewBag.TotalBooks</h3>
+                <span class="text-muted small">Tổng số sách</span>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h3>@ViewBag.AvailableBooks</h3>
-                    <p>Sách có sẵn</p>
-                </div>
+            <div class="lm-stat">
+                <h3>@ViewBag.AvailableBooks</h3>
+                <span class="text-muted small">Đang có sẵn</span>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h3>@ViewBag.ActiveRentals</h3>
-                    <p>Đang cho thuê</p>
-                </div>
+            <div class="lm-stat">
+                <h3>@ViewBag.ActiveRentals</h3>
+                <span class="text-muted small">Đang cho thuê</span>
             </div>
         </div>
     </div>
 </div>
 
-<h2 class="mb-4">
-    <i class="fas fa-star"></i> Sách mới nhất
+<h2 class="h4 fw-bold mb-3" style="letter-spacing:-0.02em;">
+    <i class="fas fa-star text-primary"></i> Sách mới nhất
 </h2>
 
-<div class="row">
+<div class="row g-3">
     @foreach (var book in Model)
     {
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                @if (!string.IsNullOrEmpty(book.CoverImage))
-                {
-                    <img src="@book.CoverImage" class="card-img-top" alt="@book.Title" style="height: 200px; object-fit: cover;">
-                }
-                else
-                {
-                    <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 200px;">
-                        <i class="fas fa-book fa-4x text-white"></i>
-                    </div>
-                }
-
-                <div class="card-body">
-                    <h5 class="card-title">@book.Title</h5>
-                    <p class="card-text">
-                        <small class="text-muted">
-                            <i class="fas fa-user"></i> @book.Author<br />
+        <div class="col-6 col-md-4 col-lg-3">
+            <article class="lm-book-card h-100 d-flex flex-column">
+                <a asp-controller="Books" asp-action="Details" asp-route-id="@book.BookId" class="text-decoration-none text-dark">
+                    @if (!string.IsNullOrEmpty(book.CoverImage))
+                    {
+                        <img src="@book.CoverImage" class="lm-book-cover" alt="@book.Title" loading="lazy" />
+                    }
+                    else
+                    {
+                        <div class="lm-book-cover placeholder">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    }
+                    <div class="lm-book-body">
+                        <h3 class="lm-book-title">@book.Title</h3>
+                        <p class="lm-book-author mb-2">@book.Author</p>
+                        <div class="lm-book-meta mb-0">
                             @if (book.IsPhysical)
                             {
-                                <span class="badge bg-primary">Sách vật lý</span>
-                                <span>@book.RentalPrice.ToString("N0") VND/ngày</span>
+                                <span class="badge bg-light text-dark border">Vật lý</span>
+                                <span>@book.RentalPrice.ToString("N0") ₫/ngày</span>
                             }
                             else
                             {
-                                <span class="badge bg-info">Sách Online</span>
-                                <span>@book.OnlinePrice?.ToString("N0") VND</span>
+                                <span class="badge bg-light text-dark border">Online</span>
+                                <span>@book.OnlinePrice?.ToString("N0") ₫</span>
                             }
-                        </small>
-                    </p>
-                </div>
-
-                <div class="card-footer bg-transparent">
-                    <a asp-controller="Books" asp-action="Details" asp-route-id="@book.BookId" class="btn btn-primary btn-sm w-100">
-                        <i class="fas fa-info-circle"></i> Xem chi tiết
+                        </div>
+                    </div>
+                </a>
+                <div class="lm-book-actions mt-auto">
+                    <a asp-controller="Books" asp-action="Details" asp-route-id="@book.BookId" class="btn btn-sm btn-primary w-100">
+                        <i class="fas fa-info-circle"></i> Chi tiết
                     </a>
                 </div>
-            </div>
+            </article>
         </div>
     }
 </div>
 
-<div class="text-center mt-4">
-    <a asp-controller="Books" asp-action="Index" class="btn btn-primary btn-lg">
+<div class="text-center mt-4 pt-2">
+    <a asp-controller="Books" asp-action="Index" class="btn btn-primary btn-lg rounded-pill px-4">
         <i class="fas fa-book"></i> Xem tất cả sách
     </a>
 </div>
