@@ -1,4 +1,4 @@
-﻿<!-- Views/Shared/_Layout.cshtml - Improved -->
+<!-- Views/Shared/_Layout.cshtml - Improved -->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -312,11 +312,14 @@
                                 </a>
                             </li>
 
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Support" asp-action="Chat">
-                                    <i class="fas fa-comments"></i> Hỗ trợ
-                                </a>
-                            </li>
+                            @if (!(User.IsInRole("Admin") || User.IsInRole("Librarian")))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Support" asp-action="Chat">
+                                        <i class="fas fa-comments"></i> Hỗ trợ
+                                    </a>
+                                </li>
+                            }
 
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Announcements" asp-action="Index">
