@@ -1,4 +1,4 @@
-﻿// Controllers/RentalsController.cs
+// Controllers/RentalsController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
@@ -125,6 +125,21 @@ namespace LibraryManagement.Controllers
             return RedirectToAction(nameof(MyRentals));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReportLost(int transactionId)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var ok = await _rentalService.ReportLostBookAsync(transactionId, userId);
+
+            if (ok)
+                TempData["SuccessMessage"] = "Đã ghi nhận báo mất sách. Thư viện đã nhận thông báo.";
+            else
+                TempData["ErrorMessage"] = "Không thể ghi nhận báo mất. Giao dịch không hợp lệ hoặc đã kết thúc.";
+
+            return RedirectToAction(nameof(MyRentals));
+        }
+
         [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> AllRentals()
         {
@@ -159,7 +174,7 @@ namespace LibraryManagement.Controllers
             var overdueOffline = await _context.RentalTransactions
                 .Include(r => r.User)
                 .Include(r => r.Book)
-                .Where(r => r.Status != "Returned" && r.DueDate < DateTime.Now)
+                .Where(r => r.Status != "Returned" && r.Status != "Lost" && r.DueDate < DateTime.Now)
                 .OrderBy(r => r.DueDate)
                 .ToListAsync();
 

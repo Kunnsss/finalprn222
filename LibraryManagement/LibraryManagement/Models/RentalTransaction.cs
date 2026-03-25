@@ -1,4 +1,4 @@
-﻿using LibraryManagement.Models;
+using LibraryManagement.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -34,7 +34,7 @@ namespace LibraryManagement.Models
         public decimal TotalAmount { get; set; }
 
         [StringLength(20)]
-        public string Status { get; set; } = "Renting"; // Renting, Returned, Overdue
+        public string Status { get; set; } = "Renting"; // Renting, Returned, Overdue, Lost
 
         // Calculated property - not mapped to database
         [NotMapped]
