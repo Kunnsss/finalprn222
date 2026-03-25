@@ -1,4 +1,4 @@
-﻿// Controllers/BooksController.cs
+// Controllers/BooksController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +6,7 @@ using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Services;
 using System.Security.Claims;
+using System.IO;
 
 namespace LibraryManagement.Controllers
 {
@@ -14,11 +15,13 @@ namespace LibraryManagement.Controllers
     {
         private readonly LibraryDbContext _context;
         private readonly IReadingHistoryService _historyService;
+        private readonly IWebHostEnvironment _environment;
 
-        public BooksController(LibraryDbContext context, IReadingHistoryService historyService)
+        public BooksController(LibraryDbContext context, IReadingHistoryService historyService, IWebHostEnvironment environment)
         {
             _context = context;
             _historyService = historyService;
+            _environment = environment;
         }
 
         [AllowAnonymous]
@@ -51,7 +54,7 @@ namespace LibraryManagement.Controllers
                 .FirstOrDefaultAsync(b => b.BookId == id);
 
             if (book == null)
-                return NotFound();
+                return View("BookNotFound");
 
             // Lưu lịch sử xem sách (nếu user đã đăng nhập)
             if (User.Identity?.IsAuthenticated == true)
@@ -76,10 +79,17 @@ namespace LibraryManagement.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin,Librarian")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Book book)
+        public async Task<IActionResult> Create(Book book, string CoverImageOption, IFormFile CoverImageFile)
         {
             if (ModelState.IsValid)
             {
+                // Xử lý ảnh bìa
+                if (CoverImageOption == "upload" && CoverImageFile != null && CoverImageFile.Length > 0)
+                {
+                    book.CoverImage = await SaveBookCoverImageAsync(CoverImageFile);
+                }
+                // Nếu chọn URL, CoverImage từ form sẽ được sử dụng
+
                 if (!book.IsPhysical)
                 {
                     book.Quantity = 0;
@@ -100,6 +110,33 @@ namespace LibraryManagement.Controllers
             return View(book);
         }
 
+        private async Task<string> SaveBookCoverImageAsync(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return null;
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(file.FileName).ToLower();
+
+            if (!allowedExtensions.Contains(extension))
+                return null;
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "covers");
+
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            return $"/uploads/covers/{fileName}";
+        }
+
         [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> Edit(int id)
         {
@@ -114,15 +151,22 @@ namespace LibraryManagement.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin,Librarian")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Book book)
+        public async Task<IActionResult> Edit(int id, Book book, string CoverImageOption, IFormFile CoverImageFile)
         {
             if (id != book.BookId)
-                return NotFound();
+                return View("BookNotFound");
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    // Xử lý ảnh bìa
+                    if (CoverImageOption == "upload" && CoverImageFile != null && CoverImageFile.Length > 0)
+                    {
+                        book.CoverImage = await SaveBookCoverImageAsync(CoverImageFile);
+                    }
+                    // Nếu chọn URL, CoverImage từ form sẽ được sử dụng
+
                     _context.Update(book);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Cập nhật sách thành công!";
@@ -131,7 +175,7 @@ namespace LibraryManagement.Controllers
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!_context.Books.Any(b => b.BookId == id))
-                        return NotFound();
+                        return View("BookNotFound");
                     throw;
                 }
             }

@@ -59,6 +59,14 @@ namespace LibraryManagement.Hubs
                 message = message,
                 timestamp = DateTime.Now
             });
+
+            // Gửi thông báo đến notification bell của tất cả Admin/Librarian
+            await Clients.Group("Librarians").SendAsync("ReceiveNotification", new
+            {
+                message = $"Tin nhắn mới từ {userName}: {message}",
+                type = "Support",
+                timestamp = DateTime.Now
+            });
         }
 
         /// <summary>

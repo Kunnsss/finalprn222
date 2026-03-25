@@ -1,4 +1,4 @@
-﻿<!-- Views/Shared/_Layout.cshtml - Improved -->
+<!-- Views/Shared/_Layout.cshtml - Improved -->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -7,6 +7,8 @@
     <title>@ViewData["Title"] - Thư Viện</title>
 
     <!-- Bootstrap CSS từ CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -79,7 +81,7 @@
         }
 
         .custom-confirm-modal .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
             color: white;
             border-radius: 15px 15px 0 0;
             border: none;
@@ -91,7 +93,7 @@
         }
 
         .custom-confirm-modal .btn-custom-confirm {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
             border: none;
             padding: 10px 30px;
             border-radius: 25px;
@@ -118,94 +120,6 @@
                 transform: scale(1.05);
             }
 
-        /* ==================== EXISTING STYLES ==================== */
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background-color: #f8f9fa;
-        }
-
-        main {
-            flex: 1;
-        }
-
-        .navbar {
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
-        }
-
-        .navbar-brand {
-            font-weight: 600;
-            font-size: 1.3rem;
-        }
-
-        .nav-link {
-            font-weight: 500;
-            transition: all 0.3s;
-            padding: 0.5rem 0.8rem !important;
-            font-size: 0.9rem;
-        }
-
-            .nav-link:hover {
-                transform: translateY(-2px);
-            }
-
-        .footer {
-            background-color: #fff;
-            border-top: 1px solid #dee2e6;
-            padding: 20px 0;
-            margin-top: 40px;
-        }
-
-        #notificationBell {
-            position: relative;
-            cursor: pointer;
-        }
-
-        #notificationCount {
-            position: absolute;
-            top: -5px;
-            right: -10px;
-            font-size: 10px;
-            min-width: 18px;
-            height: 18px;
-            padding: 2px 5px;
-            border-radius: 50%;
-        }
-
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-            .card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-            }
-
-        .btn {
-            border-radius: 6px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-
-            .btn:hover {
-                transform: translateY(-2px);
-            }
-
-        .dropdown-menu {
-            border-radius: 8px;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .modal-content {
-            border-radius: 10px;
-            border: none;
-        }
-
         .notification-item {
             padding: 10px;
             border-bottom: 1px solid #eee;
@@ -213,7 +127,7 @@
         }
 
             .notification-item:hover {
-                background-color: #f8f9fa;
+                background-color: #f1f5f9;
             }
 
             .notification-item:last-child {
@@ -221,214 +135,179 @@
             }
 
             .notification-item.unread {
-                background-color: #e7f3ff;
+                background-color: #ccfbf1;
             }
 
-        .navbar-nav .nav-item {
-            margin-right: 0;
+        .dropdown-menu {
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
         }
 
-        .dropdown-item {
-            font-size: 0.9rem;
-            padding: 0.4rem 1rem;
+        .modal-content {
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
         }
 
-        @@media (max-width: 991px) {
-            .navbar-collapse {
-                background-color: rgba(13, 110, 253, 0.95);
-                padding: 1rem;
-                margin-top: 0.5rem;
-                border-radius: 8px;
-            }
+        #notificationBell {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                    <i class="fas fa-book-reader"></i> Thư Viện
+    @{
+        var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+        var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+        string NavActive(string c, string a) =>
+            string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(act, a, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+        string NavActiveController(string c) =>
+            string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
+    <div class="app-shell">
+        <aside class="sidebar" id="appSidebar">
+            <a class="sidebar-brand" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-book-open"></i> Thư Viện
+            </a>
+            <div class="sidebar-scroll">
+                <p class="nav-section-label">Thư viện</p>
+                <a class="sidebar-link @NavActive("Home","Index")" asp-controller="Home" asp-action="Index" data-sidebar-close>
+                    <i class="fas fa-home"></i> Trang chủ
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                <i class="fas fa-home"></i> Trang chủ
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Books" asp-action="Index">
-                                <i class="fas fa-book"></i> Sách
-                            </a>
-                        </li>
+                <a class="sidebar-link @NavActiveController("Books")" asp-controller="Books" asp-action="Index" data-sidebar-close>
+                    <i class="fas fa-book"></i> Sách
+                </a>
 
-                        @if (User.Identity.IsAuthenticated)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user-circle"></i> Của tôi
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Rentals" asp-action="MyRentals">
-                                            <i class="fas fa-bookmark"></i> Sách đã thuê
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="OnlineRentals" asp-action="MyOnlineRentals">
-                                            <i class="fas fa-laptop"></i> Sách Online
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="BookReservation" asp-action="MyReservations">
-                                            <i class="fas fa-calendar-check"></i> Đặt chỗ sách
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Events" asp-action="MyEvents">
-                                            <i class="fas fa-list-alt"></i> Sự kiện của tôi
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Wishlist" asp-action="Index">
-                                            <i class="fas fa-heart"></i> Yêu thích
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="ReadingHistory" asp-action="Index">
-                                            <i class="fas fa-history"></i> Sách đã đọc
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <p class="nav-section-label">Cá nhân</p>
+                    <div class="sidebar-sub">
+                        <a class="sidebar-link @NavActive("Rentals","MyRentals")" asp-controller="Rentals" asp-action="MyRentals" data-sidebar-close>
+                            <i class="fas fa-bookmark"></i> Sách đã thuê
+                        </a>
+                        <a class="sidebar-link @NavActive("OnlineRentals","MyOnlineRentals")" asp-controller="OnlineRentals" asp-action="MyOnlineRentals" data-sidebar-close>
+                            <i class="fas fa-laptop"></i> Sách online
+                        </a>
+                        <a class="sidebar-link @NavActive("BookReservation","MyReservations")" asp-controller="BookReservation" asp-action="MyReservations" data-sidebar-close>
+                            <i class="fas fa-calendar-check"></i> Đặt chỗ
+                        </a>
+                        <a class="sidebar-link @NavActive("Events","MyEvents")" asp-controller="Events" asp-action="MyEvents" data-sidebar-close>
+                            <i class="fas fa-list-alt"></i> Sự kiện của tôi
+                        </a>
+                        <a class="sidebar-link @NavActive("Wishlist","Index")" asp-controller="Wishlist" asp-action="Index" data-sidebar-close>
+                            <i class="fas fa-heart"></i> Yêu thích
+                        </a>
+                        <a class="sidebar-link @NavActive("ReadingHistory","Index")" asp-controller="ReadingHistory" asp-action="Index" data-sidebar-close>
+                            <i class="fas fa-history"></i> Đã đọc
+                        </a>
+                    </div>
 
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Events" asp-action="Index">
-                                    <i class="fas fa-calendar-alt"></i> Sự kiện
-                                </a>
-                            </li>
+                    <p class="nav-section-label">Khám phá</p>
+                    <a class="sidebar-link @NavActive("Events","Index")" asp-controller="Events" asp-action="Index" data-sidebar-close>
+                        <i class="fas fa-calendar-alt"></i> Sự kiện
+                    </a>
+                    <a class="sidebar-link @NavActive("Announcements","Index")" asp-controller="Announcements" asp-action="Index" data-sidebar-close>
+                        <i class="fas fa-bullhorn"></i> Thông báo hệ thống
+                    </a>
 
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Support" asp-action="Chat">
-                                    <i class="fas fa-comments"></i> Hỗ trợ
-                                </a>
-                            </li>
+                    @if (!(User.IsInRole("Admin") || User.IsInRole("Librarian")))
+                    {
+                        <a class="sidebar-link @NavActive("Support","Chat")" asp-controller="Support" asp-action="Chat" data-sidebar-close>
+                            <i class="fas fa-comments"></i> Hỗ trợ
+                        </a>
+                    }
+                }
 
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Announcements" asp-action="Index">
-                                    <i class="fas fa-bullhorn"></i> Thông Báo Hệ Thống
-                                </a>
-                            </li>
-                        }
-
-                        @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-cog"></i> Quản lý
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Dashboard" asp-action="Index">
-                                            <i class="fas fa-chart-line"></i> Dashboard
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Books" asp-action="Create">
-                                            <i class="fas fa-plus-circle"></i> Thêm sách
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Rentals" asp-action="AllRentals">
-                                            <i class="fas fa-list"></i> Tất cả giao dịch
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Rentals" asp-action="OverdueRentals">
-                                            <i class="fas fa-exclamation-triangle"></i> Sách quá hạn
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="BookReservation" asp-action="ManageReservations">
-                                            <i class="fas fa-clock"></i> Quản lý đặt chỗ
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Support" asp-action="ManageChats">
-                                            <i class="fas fa-comments"></i> Quản lý hỗ trợ
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">
-                                            <i class="fas fa-users-cog"></i> Quản lý tài khoản
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                        }
-                    </ul>
-
-                    <ul class="navbar-nav">
-                        @if (User.Identity.IsAuthenticated)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" id="notificationBell">
-                                    <i class="fas fa-bell"></i>
-                                    <span class="badge bg-danger" id="notificationCount" style="display:none;">0</span>
-                                </a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user-circle"></i> @User.FindFirst("FullName")?.Value
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <span class="dropdown-item-text">
-                                            <i class="fas fa-id-badge"></i>
-                                            <strong>@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</strong>
-                                        </span>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
-                                            <i class="fas fa-user"></i> Thông tin cá nhân
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <form asp-controller="Account" asp-action="Logout" method="post">
-                                            <button type="submit" class="dropdown-item">
-                                                <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login">
-                                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Register">
-                                    <i class="fas fa-user-plus"></i> Đăng ký
-                                </a>
-                            </li>
-                        }
-                    </ul>
-                </div>
+                @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
+                {
+                    <p class="nav-section-label">Quản lý</p>
+                    <div class="sidebar-sub">
+                        <a class="sidebar-link @NavActive("Dashboard","Index")" asp-controller="Dashboard" asp-action="Index" data-sidebar-close>
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                        <a class="sidebar-link @NavActive("Books","Create")" asp-controller="Books" asp-action="Create" data-sidebar-close>
+                            <i class="fas fa-plus-circle"></i> Thêm sách
+                        </a>
+                        <a class="sidebar-link @NavActive("Rentals","AllRentals")" asp-controller="Rentals" asp-action="AllRentals" data-sidebar-close>
+                            <i class="fas fa-list"></i> Tất cả giao dịch
+                        </a>
+                        <a class="sidebar-link @NavActive("Rentals","OverdueRentals")" asp-controller="Rentals" asp-action="OverdueRentals" data-sidebar-close>
+                            <i class="fas fa-exclamation-triangle"></i> Sách quá hạn
+                        </a>
+                        <a class="sidebar-link @NavActive("BookReservation","ManageReservations")" asp-controller="BookReservation" asp-action="ManageReservations" data-sidebar-close>
+                            <i class="fas fa-clock"></i> Quản lý đặt chỗ
+                        </a>
+                        <a class="sidebar-link @NavActive("Support","ManageChats")" asp-controller="Support" asp-action="ManageChats" data-sidebar-close>
+                            <i class="fas fa-headset"></i> Quản lý hỗ trợ
+                        </a>
+                        <a class="sidebar-link @NavActive("UserManagement","Index")" asp-controller="UserManagement" asp-action="Index" data-sidebar-close>
+                            <i class="fas fa-users-cog"></i> Tài khoản
+                        </a>
+                    </div>
+                }
             </div>
-        </nav>
-    </header>
 
-    <div class="container my-4">
+            <div class="sidebar-footer">
+                @if (!User.Identity.IsAuthenticated)
+                {
+                    <a class="sidebar-link @NavActive("Account","Login")" asp-controller="Account" asp-action="Login" data-sidebar-close>
+                        <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                    </a>
+                    <a class="sidebar-link @NavActive("Account","Register")" asp-controller="Account" asp-action="Register" data-sidebar-close>
+                        <i class="fas fa-user-plus"></i> Đăng ký
+                    </a>
+                }
+                else
+                {
+                    <small class="text-muted d-block px-2 mb-1">@User.FindFirst("FullName")?.Value</small>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                        <button type="submit" class="sidebar-link border-0 bg-transparent w-100 text-start">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </button>
+                    </form>
+                }
+            </div>
+        </aside>
+
+        <div class="sidebar-backdrop d-lg-none" id="sidebarBackdrop" aria-hidden="true"></div>
+
+        <div class="main-wrap">
+            <header class="top-bar">
+                <button type="button" class="btn btn-icon d-lg-none" id="sidebarToggle" aria-label="Mở menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="top-bar-title d-none d-sm-inline">@ViewData["Title"]</span>
+                <div class="top-bar-actions ms-auto">
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <a class="nav-link" href="#" id="notificationBell" title="Thông báo">
+                            <i class="fas fa-bell fa-lg"></i>
+                            <span class="badge bg-danger" id="notificationCount" style="display:none;">0</span>
+                        </a>
+                        <div class="dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-lg"></i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <span class="dropdown-item-text small text-muted">
+                                        <i class="fas fa-id-badge"></i>
+                                        @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                                    </span>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                        <i class="fas fa-user"></i> Hồ sơ
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                </div>
+            </header>
+
+            <div class="content-area">
         @* ==================== IMPROVED ALERTS ==================== *@
         @if (TempData["SuccessMessage"] != null)
         {
@@ -490,9 +369,15 @@
             </div>
         }
 
-        <main role="main">
-            @RenderBody()
-        </main>
+                <main role="main">
+                    @RenderBody()
+                </main>
+            </div>
+
+            <footer class="app-footer">
+                <span><i class="fas fa-book-reader"></i> &copy; 2026 — Hệ thống quản lý thư viện</span>
+            </footer>
+        </div>
     </div>
 
     @* ==================== CUSTOM CONFIRMATION MODAL ==================== *@
@@ -526,7 +411,7 @@
     <div class="modal fade" id="notificationModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);">
                     <h5 class="modal-title">
                         <i class="fas fa-bell"></i> Thông báo
                     </h5>
@@ -546,14 +431,6 @@
             </div>
         </div>
     </div>
-
-    <footer class="footer mt-auto py-1">
-        <div class="container text-center">
-            <span class="text-muted">
-                <i class="fas fa-book-reader"></i> &copy; 2026 - Hệ thống quản lý thư viện
-            </span>
-        </div>
-    </footer>
 
     <!-- Scripts từ CDN -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -624,6 +501,26 @@
                 }
             }
         });
+
+        // ==================== SIDEBAR (mobile) ====================
+        (function () {
+            const toggle = document.getElementById('sidebarToggle');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            function close() { document.body.classList.remove('sidebar-open'); }
+            function open() { document.body.classList.add('sidebar-open'); }
+            toggle?.addEventListener('click', function () {
+                if (document.body.classList.contains('sidebar-open')) close(); else open();
+            });
+            backdrop?.addEventListener('click', close);
+            document.querySelectorAll('[data-sidebar-close]').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    if (window.innerWidth < 992) close();
+                });
+            });
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 992) close();
+            });
+        })();
 
         // ==================== AUTO-HIDE ALERTS ====================
         $(document).ready(function() {
