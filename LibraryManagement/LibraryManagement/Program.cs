@@ -32,6 +32,7 @@ builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRentalService, RentalServiceEnhanced>();
 builder.Services.AddScoped<IOnlineRentalService, OnlineRentalService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();

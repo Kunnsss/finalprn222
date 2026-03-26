@@ -41,6 +41,10 @@ namespace LibraryManagement.Models
 
         public DateTime CreatedDate { get; set; } = DateTime.Now;
 
+        public bool IsEmailVerified { get; set; } = false;
+        public string? EmailVerificationToken { get; set; }
+        public DateTime? EmailVerificationTokenExpiry { get; set; }
+
         public virtual ICollection<RentalTransaction> RentalTransactions { get; set; }
         public virtual ICollection<OnlineRentalTransaction> OnlineRentalTransactions { get; set; }
         public virtual ICollection<Notification> Notifications { get; set; }
