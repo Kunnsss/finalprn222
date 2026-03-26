@@ -34,7 +34,7 @@ namespace LibraryManagement.Models
         public decimal TotalAmount { get; set; }
 
         [StringLength(20)]
-        public string Status { get; set; } = "Renting"; // Renting, Returned, Overdue, Lost
+        public string Status { get; set; } = "Renting"; // Renting, Returned, Overdue, Lost, PendingPayment, Compensated, ...
 
         // Calculated property - not mapped to database
         [NotMapped]

@@ -184,7 +184,7 @@ namespace LibraryManagement.Controllers
             var overdueOffline = await _context.RentalTransactions
                 .Include(r => r.User)
                 .Include(r => r.Book)
-                .Where(r => r.Status != "Returned" && r.Status != "Lost" && r.DueDate < DateTime.Now)
+                .Where(r => r.Status != "Returned" && r.Status != "Lost" && r.Status != "Compensated" && r.DueDate < DateTime.Now)
                 .OrderBy(r => r.DueDate)
                 .ToListAsync();
 
@@ -263,6 +263,26 @@ namespace LibraryManagement.Controllers
             {
                 TempData["ErrorMessage"] = "Không thể xác nhận thanh toán. Vui lòng thử lại.";
             }
+
+            return RedirectToAction(nameof(AllRentals));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Librarian")]
+        public async Task<IActionResult> ProcessLostCompensation(int transactionId, decimal compensationAmount)
+        {
+            if (compensationAmount <= 0)
+            {
+                TempData["ErrorMessage"] = "Số tiền đền bù phải lớn hơn 0.";
+                return RedirectToAction(nameof(AllRentals));
+            }
+
+            var ok = await _rentalService.ProcessLostBookCompensationAsync(transactionId, compensationAmount);
+            if (ok)
+                TempData["SuccessMessage"] = "Đã ghi nhận phí đền bù. Người thuê chuyển sang chờ thanh toán.";
+            else
+                TempData["ErrorMessage"] = "Không thể xử lý. Giao dịch không ở trạng thái \"Đã báo mất\".";
 
             return RedirectToAction(nameof(AllRentals));
         }

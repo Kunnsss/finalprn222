@@ -1,4 +1,4 @@
-﻿// Data/LibraryDbContext.cs - FIX TRIGGER CHO SYSTEM ANNOUNCEMENTS
+// Data/LibraryDbContext.cs - FIX TRIGGER CHO SYSTEM ANNOUNCEMENTS
 using LibraryManagement.Models;
 using Microsoft.EntityFrameworkCore;
 
