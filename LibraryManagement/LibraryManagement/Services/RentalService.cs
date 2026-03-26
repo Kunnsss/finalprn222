@@ -33,7 +33,7 @@ namespace LibraryManagement.Services
                 .Include(t => t.User)
                 .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
 
-            if (transaction == null || transaction.Status == "Returned" || transaction.Status == "Lost")
+            if (transaction == null || transaction.Status == "Returned" || transaction.Status == "Lost" || transaction.Status == "Compensated")
                 return false;
 
             if (transaction.UserId != reportingUserId)
@@ -52,7 +52,6 @@ namespace LibraryManagement.Services
 
             var renterName = transaction.User?.FullName ?? "Người thuê";
             var bookTitle = book.Title;
-            // Thông báo gửi tới Admin/Thủ thư khi user bấm báo mất (chuông + danh sách thông báo)
             var msg = $"Đã báo mất sách: \"{bookTitle}\" — người thuê: {renterName} — mã giao dịch #{transaction.TransactionId}. Xem chi tiết tại Quản lý thuê sách.";
             await _notificationService.SendNotificationToAllAdminsAsync(msg, "LostBook");
 
@@ -75,7 +74,7 @@ namespace LibraryManagement.Services
                 .Include(t => t.Book)
                 .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
 
-            if (transaction == null || transaction.Status == "Returned" || transaction.Status == "Lost")
+            if (transaction == null || transaction.Status == "Returned" || transaction.Status == "Lost" || transaction.Status == "Compensated")
                 return false;
 
             transaction.ReturnDate = DateTime.Now;
@@ -91,12 +90,10 @@ namespace LibraryManagement.Services
             // === THÔNG BÁO REALTIME ===
 
             // 1. Thông báo cho user trả sách
-           
-                await _notificationService.SendNotificationAsync(transaction.UserId,
-                $"Bạn đã trả sách '{transaction.Book.Title}' thành công. " +
-                $"Tổng tiền: {transaction.TotalAmount:N0} VND" +
-                (transaction.LateFee > 0 ? $" (Phí trễ: {transaction.LateFee:N0} VND)" : ""),
-                "Success");
+            var msg = $"Bạn đã trả sách '{transaction.Book.Title}' thành công.";
+            if (transaction.LateFee > 0)
+                msg += $" Phí phạt trễ: {transaction.LateFee:N0} VND. Vui lòng đến quầy thanh toán phí phạt.";
+            await _notificationService.SendNotificationAsync(transaction.UserId, msg, transaction.LateFee > 0 ? "Warning" : "Success");
             
             // 2. Cập nhật số lượng sách trên trang tìm kiếm (realtime)
             await _hubContext.Clients.All.SendAsync("BookAvailabilityUpdated", new
@@ -197,7 +194,7 @@ namespace LibraryManagement.Services
             return await _context.RentalTransactions
                 .Include(r => r.User)
                 .Include(r => r.Book)
-                .Where(r => r.Status != "Returned" && r.Status != "Lost" && r.DueDate < DateTime.Now)
+                .Where(r => r.Status != "Returned" && r.Status != "Lost" && r.Status != "Compensated" && r.DueDate < DateTime.Now)
                 .OrderBy(r => r.DueDate)
                 .ToListAsync();
         }
@@ -228,6 +225,10 @@ namespace LibraryManagement.Services
 
             // Chỉ cho phép hủy nếu đang thuê hoặc chờ thanh toán
             if (transaction.Status != "Renting" && transaction.Status != "Overdue" && transaction.Status != "PendingPayment")
+                return false;
+
+            // Chờ thanh toán phí đền bù sách mất: không hủy qua luồng này (sách đã báo mất, không cộng lại kho)
+            if (transaction.Status == "PendingPayment" && transaction.ReturnDate.HasValue)
                 return false;
 
             // Đổi trạng thái thành Cancelled (Hủy hẳn)
@@ -302,6 +303,35 @@ namespace LibraryManagement.Services
             return true;
         }
 
+        public async Task<bool> ProcessLostBookCompensationAsync(int transactionId, decimal compensationAmount)
+        {
+            if (compensationAmount <= 0)
+                return false;
+
+            var transaction = await _context.RentalTransactions
+                .Include(t => t.Book)
+                .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
+
+            if (transaction == null || transaction.Status != "Lost")
+                return false;
+
+            transaction.LateFee += compensationAmount;
+            transaction.TotalAmount += compensationAmount;
+            transaction.Status = "PendingPayment";
+
+            await _context.SaveChangesAsync();
+
+            await _notificationService.SendNotificationAsync(transaction.UserId,
+                $"Thư viện đã ghi nhận phí đền bù sách mất \"{transaction.Book.Title}\": {compensationAmount:N0} VND " +
+                $"(tổng phí phạt: {transaction.LateFee:N0} VND). " +
+                "Vui lòng đến quầy thanh toán phí phạt.",
+                "Warning");
+
+            await _hubContext.Clients.All.SendAsync("RentalUpdated");
+
+            return true;
+        }
+
         public async Task<bool> ConfirmPaymentAsync(int transactionId)
         {
             var transaction = await _context.RentalTransactions
@@ -315,17 +345,26 @@ namespace LibraryManagement.Services
             if (transaction.Status != "PendingPayment")
                 return false;
 
-            // Đổi trạng thái về Renting (Đang thuê)
-            transaction.Status = "Renting";
+            // Đền bù sách mất: đã có ReturnDate khi báo mất → sau thanh toán đóng hồ sơ (không trả về Renting)
+            if (transaction.ReturnDate.HasValue)
+            {
+                transaction.Status = "Compensated";
+                await _context.SaveChangesAsync();
 
-            await _context.SaveChangesAsync();
+                await _notificationService.SendNotificationAsync(transaction.UserId,
+                    $"Thanh toán phí phạt sách mất '{transaction.Book.Title}' đã được xác nhận. Phí phạt: {transaction.LateFee:N0} VND.",
+                    "Success");
+            }
+            else
+            {
+                transaction.Status = "Renting";
+                await _context.SaveChangesAsync();
 
-            // Thông báo cho user
-            await _notificationService.SendNotificationAsync(transaction.UserId,
-                $"Thanh toán cho sách '{transaction.Book.Title}' đã được xác nhận. Bạn có thể tiếp tục thuê sách.",
-                "Success");
+                await _notificationService.SendNotificationAsync(transaction.UserId,
+                    $"Thanh toán cho sách '{transaction.Book.Title}' đã được xác nhận. Bạn có thể tiếp tục thuê sách.",
+                    "Success");
+            }
 
-            // SignalR: Thông báo cho tất cả client cập nhật
             await _hubContext.Clients.All.SendAsync("RentalUpdated");
 
             return true;

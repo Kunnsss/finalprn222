@@ -41,8 +41,9 @@
             @foreach (var rental in Model)
             {
                 var isLost = rental.Status == "Lost";
+                var isCompensated = rental.Status == "Compensated";
                 var isOverdue = rental.Status == "Renting" && rental.DueDate < DateTime.Now;
-                var rowClass = isLost ? "table-secondary" : (isOverdue ? "table-danger" : (rental.Status == "Returned" ? "table-success" : ""));
+                var rowClass = isLost ? "table-secondary" : (isCompensated ? "table-success" : (isOverdue ? "table-danger" : (rental.Status == "Returned" ? "table-success" : "")));
 
                 <tr class="@rowClass">
                     <td>@rental.Book.Title</td>
@@ -85,6 +86,10 @@
                         {
                             <span class="badge bg-success">Đã trả</span>
                         }
+                        else if (rental.Status == "Compensated")
+                        {
+                            <span class="badge bg-success">Đã đền bù</span>
+                        }
                         else if (rental.Status == "Lost")
                         {
                             <span class="badge bg-dark">Đã báo mất</span>
@@ -99,18 +104,29 @@
                         {
                             @if (rental.Status == "Renting" || rental.Status == "Overdue")
                             {
-                                <button type="button" class="btn btn-sm btn-success me-1" 
-                                        data-bs-toggle="modal" 
+                                <button type="button" class="btn btn-sm btn-success me-1"
+                                        data-bs-toggle="modal"
                                         data-bs-target="#extendModal"
                                         data-transaction-id="@rental.TransactionId"
                                         data-book-title="@rental.Book.Title">
                                     <i class="fas fa-clock"></i> Gia hạn
                                 </button>
+                                <button type="button" class="btn btn-sm btn-warning me-1"
+                                        onclick="confirmLost(@rental.TransactionId, '@rental.Book.Title')">
+                                    <i class="fas fa-exclamation-triangle"></i> Báo mất
+                                </button>
                             }
-                            <button type="button" class="btn btn-sm btn-danger" 
-                                    onclick="confirmCancel(@rental.TransactionId, '@rental.Book.Title')">
-                                <i class="fas fa-times"></i> Hủy
-                            </button>
+                            @if (rental.Status == "PendingPayment" && rental.ReturnDate.HasValue)
+                            {
+                                <span class="text-muted small"><i class="fas fa-info-circle"></i> Vui lòng đến quầy thanh toán phí đền bù</span>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="confirmCancel(@rental.TransactionId, '@rental.Book.Title')">
+                                    <i class="fas fa-times"></i> Hủy
+                                </button>
+                            }
                         }
                         else
                         {
@@ -167,6 +183,11 @@
     <input type="hidden" id="cancelTransactionId" name="transactionId" />
 </form>
 
+<!-- Form ẩn để báo mất -->
+<form id="lostForm" method="post" asp-action="ReportLost" style="display:none;">
+    <input type="hidden" id="lostTransactionId" name="transactionId" />
+</form>
+
 <script>
     // Xử lý modal gia hạn
     var extendModal = document.getElementById('extendModal');
@@ -184,6 +205,14 @@
         if (confirm('Bạn có chắc chắn muốn hủy thuê sách "' + bookTitle + '"?')) {
             document.getElementById('cancelTransactionId').value = transactionId;
             document.getElementById('cancelForm').submit();
+        }
+    }
+
+    // Xử lý xác nhận báo mất
+    function confirmLost(transactionId, bookTitle) {
+        if (confirm('Bạn có chắc chắn muốn báo mất sách "' + bookTitle + '"?\nHành động này sẽ gửi thông báo đến thư viện.')) {
+            document.getElementById('lostTransactionId').value = transactionId;
+            document.getElementById('lostForm').submit();
         }
     }
 

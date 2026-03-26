@@ -210,6 +210,39 @@
     </div>
 </div>
 
+<!-- Modal: Xử lý sách mất — nhập tiền đền bù -->
+<div class="modal fade" id="processLostModal" tabindex="-1" aria-labelledby="processLostModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="processLostModalLabel">
+                    <i class="fas fa-book-dead"></i> Xử lý sách mất — phí đền bù
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="ProcessLostCompensation" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="processLostTransactionId" name="transactionId" />
+                <div class="modal-body">
+                    <p class="mb-2">Giao dịch: <strong id="processLostTxLabel"></strong></p>
+                    <p class="small text-muted mb-3">Số tiền nhập sẽ được cộng vào <strong>Phí phạt</strong> và <strong>Tổng tiền</strong>. Trạng thái chuyển sang <strong>Chờ thanh toán</strong> (user và admin).</p>
+                    <div class="mb-3">
+                        <label for="compensationAmount" class="form-label">Số tiền đền bù (VND) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="compensationAmount" name="compensationAmount"
+                               min="1" step="1" required placeholder="Ví dụ: 15000" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-dark">
+                        <i class="fas fa-check"></i> Lưu &amp; chờ thanh toán
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Tabs -->
 <ul class="nav nav-tabs mb-3" id="rentalTabs" role="tablist">
     <li class="nav-item" role="presentation">
@@ -255,10 +288,11 @@
                                 @foreach (var rental in Model.OfflineRentals)
                                 {
                                     var isLost = rental.Status == "Lost";
-                                    var isReturned = rental.Status == "Returned";
+                                    var isCompensated = rental.Status == "Compensated";
+                                    var isReturned = rental.Status == "Returned" || isCompensated;
                                     var isClosed = isReturned || isLost;
-                                    var isOverdue = !isClosed && rental.DueDate < DateTime.Now;
-                                    var rowClass = isLost ? "table-secondary" : (isOverdue ? "table-danger" : (isReturned ? "" : "table-warning"));
+                                    var isOverdue = rental.Status != "PendingPayment" && !isClosed && rental.DueDate < DateTime.Now;
+                                    var rowClass = isLost ? "table-secondary" : (isCompensated ? "table-success" : (isOverdue ? "table-danger" : (rental.Status == "Returned" ? "" : "table-warning")));
 
                                     <tr class="@rowClass">
                                         <td><strong>#@rental.TransactionId</strong></td>
@@ -344,6 +378,12 @@
                                                     <i class="fas fa-check"></i> Đã trả
                                                 </span>
                                             }
+                                            else if (isCompensated)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-double"></i> Đã đền bù
+                                                </span>
+                                            }
                                             else if (isLost)
                                             {
                                                 <span class="badge bg-dark" title="Người thuê đã báo mất sách">
@@ -377,7 +417,17 @@
                                             {
                                                 <span class="text-muted">Đã hủy</span>
                                             }
-                                            else if (rental.Status != "Returned")
+                                            else if (isLost)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-dark btn-process-lost"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#processLostModal"
+                                                        data-transaction-id="@rental.TransactionId"
+                                                        data-tx-label="Mã GD #@rental.TransactionId">
+                                                    <i class="fas fa-cog"></i> Xử lý
+                                                </button>
+                                            }
+                                            else if (rental.Status != "Returned" && !isCompensated)
                                             {
                                                 <form asp-action="Return" method="post" style="display:inline;" class="return-form" data-transaction-id="@rental.TransactionId">
                                                     <input type="hidden" name="transactionId" value="@rental.TransactionId" />
@@ -385,10 +435,6 @@
                                                         <i class="fas fa-undo"></i> Nhận trả
                                                     </button>
                                                 </form>
-                                            }
-                                            else if (isLost)
-                                            {
-                                                <span class="text-muted small"><i class="fas fa-info-circle"></i> Người thuê đã báo mất</span>
                                             }
                                             else
                                             {
@@ -591,7 +637,7 @@
                     <div class="col-md-3">
                         <h6>Đang hoạt động</h6>
                         <h3 class="text-success">
-                            @(Model.OfflineRentals.Count(r => r.Status != "Returned" && r.Status != "Lost") + Model.OnlineRentals.Count(r => r.Status == "Active"))
+                            @(Model.OfflineRentals.Count(r => r.Status != "Returned" && r.Status != "Lost" && r.Status != "Compensated") + Model.OnlineRentals.Count(r => r.Status == "Active"))
                         </h3>
                     </div>
                 </div>
@@ -651,6 +697,18 @@
                     currentForm.submit();
                 }
             });
+
+            var processLostModal = document.getElementById('processLostModal');
+            if (processLostModal) {
+                processLostModal.addEventListener('show.bs.modal', function (event) {
+                    var btn = event.relatedTarget;
+                    if (!btn) return;
+                    document.getElementById('processLostTransactionId').value = btn.getAttribute('data-transaction-id') || '';
+                    document.getElementById('processLostTxLabel').textContent = btn.getAttribute('data-tx-label') || '';
+                    var amt = document.getElementById('compensationAmount');
+                    if (amt) amt.value = '';
+                });
+            }
         });
 
         // SignalR - Lắng nghe cập nhật từ server
