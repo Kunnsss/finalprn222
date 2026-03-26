@@ -21,12 +21,12 @@
 
                     <div class="mb-3">
                         <label class="form-label">Giá thuê Online</label>
-                        <input type="text" class="form-control" value="@Model.OnlinePrice.ToString("N0") VND" readonly />
+                        <input type="text" class="form-control" id="displayPrice" value="@Model.OnlinePrice.ToString("N0") VND" readonly />
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="AccessDays" class="form-label">Thời hạn truy cập (ngày)</label>
-                        <select asp-for="AccessDays" class="form-select">
+                        <select asp-for="AccessDays" class="form-select" id="AccessDays">
                             <option value="7">7 ngày</option>
                             <option value="30" selected>30 ngày</option>
                             <option value="90">90 ngày</option>
@@ -42,7 +42,7 @@
                     </div>
 
                     <div class="alert alert-success">
-                        <strong>Tổng tiền:</strong> @Model.OnlinePrice.ToString("N0") VND
+                        <strong>Tổng tiền:</strong> <span id="totalPrice">@Model.OnlinePrice.ToString("N0") VND</span>
                     </div>
 
                     <div class="alert alert-info">
@@ -71,14 +71,26 @@
 
 @section Scripts {
     <script>
-        function updateExpiryDate() {
-            const days = parseInt(document.getElementById('AccessDays').value) || 0;
+        const basePrice = @Model.OnlinePrice; // Giá cơ bản cho 30 ngày
+        const baseDays = 30;
+
+        function updatePriceAndDate() {
+            const days = parseInt(document.getElementById('AccessDays').value) || 30;
+            
+            // Tính giá theo số ngày
+            const calculatedPrice = (basePrice / baseDays) * days;
+            
+            // Cập nhật hiển thị giá
+            document.getElementById('displayPrice').value = calculatedPrice.toLocaleString('vi-VN') + ' VND';
+            document.getElementById('totalPrice').textContent = calculatedPrice.toLocaleString('vi-VN') + ' VND';
+            
+            // Cập nhật ngày hết hạn
             const expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + days);
             document.getElementById('expiryDate').value = expiryDate.toLocaleDateString('vi-VN');
         }
 
-        document.getElementById('AccessDays')?.addEventListener('change', updateExpiryDate);
-        updateExpiryDate();
+        document.getElementById('AccessDays')?.addEventListener('change', updatePriceAndDate);
+        updatePriceAndDate();
     </script>
 }
