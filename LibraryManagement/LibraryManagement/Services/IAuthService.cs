@@ -28,5 +28,8 @@ namespace LibraryManagement.Services
         // Forgot Password methods - THÊM MỚI
         Task<User?> VerifyUserForPasswordResetAsync(string username, string email, string phoneNumber);
         Task<bool> ResetPasswordAsync(string username, string newPassword);
+
+        // Email Verification
+        Task<string> VerifyEmailAsync(string token);
     }
 }

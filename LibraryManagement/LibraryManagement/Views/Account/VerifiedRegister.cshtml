@@ -1,0 +1,94 @@
+@{
+    ViewData["Title"] = "Xác thực Email";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var result = TempData["VerifyResult"] as string;
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow text-center p-4">
+
+            @if (string.IsNullOrEmpty(result))
+            {
+                <!-- State 1: Just registered, waiting for user to check email -->
+                <div class="mb-4">
+                    <i class="fas fa-envelope-open-text fa-4x text-primary"></i>
+                </div>
+                <h4 class="mb-3">Kiểm tra hộp thư của bạn</h4>
+                <p class="text-muted">
+                    Một email xác thực đã được gửi đến địa chỉ email của bạn.<br />
+                    Vui lòng kiểm tra email và nhấn vào link xác thực để kích hoạt tài khoản.
+                </p>
+                <p class="text-muted small">Link xác thực có hiệu lực trong <strong>24 giờ</strong>.</p>
+            }
+            else if (result == "success")
+            {
+                <!-- State 2: Verification success -->
+                <div class="mb-4">
+                    <i class="fas fa-check-circle fa-4x text-success"></i>
+                </div>
+                <h4 class="mb-3 text-success">Xác thực thành công!</h4>
+                <p class="text-muted">
+                    Email của bạn đã được xác thực. Tài khoản đã sẵn sàng sử dụng.
+                </p>
+                <p class="text-muted small">Bạn sẽ được chuyển đến trang đăng nhập sau <strong id="countdown">5</strong> giây...</p>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-success mt-2">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập ngay
+                </a>
+            }
+            else if (result == "expired")
+            {
+                <!-- State 3: Token expired -->
+                <div class="mb-4">
+                    <i class="fas fa-clock fa-4x text-warning"></i>
+                </div>
+                <h4 class="mb-3 text-warning">Link đã hết hạn</h4>
+                <p class="text-muted">
+                    Link xác thực đã hết hạn (sau 24 giờ). Vui lòng đăng ký lại để nhận link mới.
+                </p>
+                <p class="text-muted small">Bạn sẽ được chuyển đến trang đăng ký sau <strong id="countdown">5</strong> giây...</p>
+                <a asp-controller="Account" asp-action="Register" class="btn btn-warning mt-2">
+                    <i class="fas fa-user-plus"></i> Đăng ký lại
+                </a>
+            }
+            else
+            {
+                <!-- State 4: Invalid token or error -->
+                <div class="mb-4">
+                    <i class="fas fa-times-circle fa-4x text-danger"></i>
+                </div>
+                <h4 class="mb-3 text-danger">Xác thực thất bại</h4>
+                <p class="text-muted">
+                    Link xác thực không hợp lệ hoặc đã xảy ra lỗi. Vui lòng thử đăng ký lại.
+                </p>
+                <p class="text-muted small">Bạn sẽ được chuyển đến trang đăng ký sau <strong id="countdown">5</strong> giây...</p>
+                <a asp-controller="Account" asp-action="Register" class="btn btn-danger mt-2">
+                    <i class="fas fa-user-plus"></i> Đăng ký lại
+                </a>
+            }
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (result == "success" || result == "expired" || result == "invalid" || result == "error")
+    {
+        <script>
+            var seconds = 5;
+            var countdownEl = document.getElementById('countdown');
+            var redirectUrl = '@(result == "success"
+                ? Url.Action("Login", "Account")
+                : Url.Action("Register", "Account"))';
+
+            var timer = setInterval(function () {
+                seconds--;
+                if (countdownEl) countdownEl.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    window.location.href = redirectUrl;
+                }
+            }, 1000);
+        </script>
+    }
+}
