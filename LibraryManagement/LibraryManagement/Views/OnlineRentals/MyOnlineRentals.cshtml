@@ -171,5 +171,19 @@
             document.getElementById('cancelOnlineForm').submit();
         }
     }
+
+    // SignalR - Lắng nghe cập nhật online rentals
+    const onlineRentalConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/libraryHub")
+        .build();
+
+    onlineRentalConnection.on("OnlineRentalUpdated", function () {
+        // Reload trang khi có cập nhật
+        location.reload();
+    });
+
+    onlineRentalConnection.start()
+        .then(() => console.log('SignalR connected for online rentals'))
+        .catch(err => console.error('SignalR error:', err));
 </script>
 @await Html.PartialAsync("_Pagination")
