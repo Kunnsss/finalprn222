@@ -1,4 +1,4 @@
-﻿// Services/RentalService.cs - Thêm logic thông báo khi trả sách
+// Services/RentalService.cs - Thêm logic thông báo khi trả sách
 using LibraryManagement.Data;
 using LibraryManagement.Hubs;
 using LibraryManagement.Models;
@@ -61,9 +61,6 @@ namespace LibraryManagement.Services
                 BookId = transaction.BookId,
                 AvailableQuantity = transaction.Book.AvailableQuantity
             });
-
-            // 3. Thông báo cho người đang đặt chỗ (nếu có)
-            await _reservationService.ProcessReservationWhenBookReturnedAsync(transaction.BookId);
 
             return true;
         }

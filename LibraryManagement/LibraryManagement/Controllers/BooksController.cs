@@ -154,7 +154,10 @@ namespace LibraryManagement.Controllers
         public async Task<IActionResult> Edit(int id, Book book, string CoverImageOption, IFormFile CoverImageFile)
         {
             if (id != book.BookId)
+            {
+                TempData["ErrorMessage"] = $"Không thể cập nhật: id route ({id}) khác BookId form ({book.BookId}).";
                 return View("BookNotFound");
+            }
 
             if (ModelState.IsValid)
             {
@@ -178,6 +181,18 @@ namespace LibraryManagement.Controllers
                         return View("BookNotFound");
                     throw;
                 }
+            }
+
+            // Nếu ModelState không hợp lệ thì báo để người dùng biết lý do
+            if (!ModelState.IsValid)
+            {
+                var firstError = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .FirstOrDefault();
+                TempData["ErrorMessage"] = !string.IsNullOrWhiteSpace(firstError)
+                    ? $"Không thể cập nhật sách. Lỗi: {firstError}"
+                    : "Không thể cập nhật sách. Vui lòng kiểm tra lại dữ liệu nhập vào.";
             }
 
             ViewBag.Categories = await _context.Categories.ToListAsync();

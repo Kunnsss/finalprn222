@@ -1,4 +1,4 @@
-﻿// Controllers/BookReservationController.cs
+// Controllers/BookReservationController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using LibraryManagement.Services;
@@ -140,7 +140,18 @@ namespace LibraryManagement.Controllers
                     return Ok(new { message = "Đã đánh dấu sẵn sàng" });
                 }
 
-                return BadRequest(new { message = "Không thể cập nhật trạng thái" });
+                var reservation = await _context.BookReservations
+                    .FirstOrDefaultAsync(r => r.ReservationId == id);
+
+                if (reservation == null)
+                {
+                    return NotFound(new { message = "Không tìm thấy đặt chỗ" });
+                }
+
+                return BadRequest(new
+                {
+                    message = $"Không thể đánh dấu sẵn sàng. ReservationId={id} hiện tại đang ở trạng thái '{reservation.Status}'."
+                });
             }
             catch (Exception ex)
             {
@@ -162,7 +173,20 @@ namespace LibraryManagement.Controllers
                     return Ok(new { message = "Đã đánh dấu hoàn thành" });
                 }
 
-                return BadRequest(new { message = "Không thể cập nhật trạng thái" });
+                var reservation = await _context.BookReservations
+                    .Include(r => r.Book)
+                    .FirstOrDefaultAsync(r => r.ReservationId == id);
+
+                if (reservation == null)
+                {
+                    return NotFound(new { message = "Không tìm thấy đặt chỗ" });
+                }
+
+                var availableQuantity = reservation.Book?.AvailableQuantity ?? 0;
+                return BadRequest(new
+                {
+                    message = $"Không thể đánh dấu hoàn thành. ReservationId={id} hiện tại '{reservation.Status}', AvailableQuantity của sách={availableQuantity}."
+                });
             }
             catch (Exception ex)
             {
