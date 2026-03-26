@@ -11,5 +11,8 @@ namespace LibraryManagement.Services
         Task<List<RentalTransaction>> GetUserRentalsAsync(int userId);
         Task<List<RentalTransaction>> GetOverdueRentalsAsync();
         Task UpdateOverdueStatusAsync();
+        Task<bool> CancelRentalAsync(int transactionId, int userId);
+        Task<bool> ExtendRentalAsync(int transactionId, int additionalDays);
+        Task<bool> ConfirmPaymentAsync(int transactionId);
     }
 }

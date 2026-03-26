@@ -324,7 +324,19 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (rental.Status == "Returned")
+                                            @if (rental.Status == "PendingPayment")
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-clock"></i> Chờ thanh toán
+                                                </span>
+                                            }
+                                            else if (rental.Status == "Cancelled")
+                                            {
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-ban"></i> Đã hủy
+                                                </span>
+                                            }
+                                            else if (rental.Status == "Returned")
                                             {
                                                 <span class="badge bg-success">
                                                     <i class="fas fa-check"></i> Đã trả
@@ -344,7 +356,20 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (rental.Status != "Returned")
+                                            @if (rental.Status == "PendingPayment")
+                                            {
+                                                <form asp-action="ConfirmPayment" method="post" style="display:inline;">
+                                                    <input type="hidden" name="transactionId" value="@rental.TransactionId" />
+                                                    <button type="submit" class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-check-circle"></i> Xác nhận thanh toán
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (rental.Status == "Cancelled")
+                                            {
+                                                <span class="text-muted">Đã hủy</span>
+                                            }
+                                            else if (rental.Status != "Returned")
                                             {
                                                 <form asp-action="Return" method="post" style="display:inline;" class="return-form" data-transaction-id="@rental.TransactionId">
                                                     <input type="hidden" name="transactionId" value="@rental.TransactionId" />
@@ -590,5 +615,19 @@
                 }
             });
         });
+
+        // SignalR - Lắng nghe cập nhật từ server
+        const adminRentalConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/libraryHub")
+            .build();
+
+        adminRentalConnection.on("RentalUpdated", function () {
+            // Reload trang khi có cập nhật
+            location.reload();
+        });
+
+        adminRentalConnection.start()
+            .then(() => console.log('SignalR connected for admin rentals'))
+            .catch(err => console.error('SignalR error:', err));
     </script>
 }

@@ -19,7 +19,7 @@
                 <th>Phí trễ</th>
                 <th>Tổng tiền</th>
                 <th>Trạng thái</th>
-               
+                <th>Thao tác</th>
             </tr>
         </thead>
         <tbody>
@@ -46,7 +46,15 @@
                     </td>
                     <td><strong>@rental.TotalAmount.ToString("N0") VND</strong></td>
                     <td>
-                        @if (rental.Status == "Renting")
+                        @if (rental.Status == "PendingPayment")
+                        {
+                            <span class="badge bg-warning">Chờ thanh toán</span>
+                        }
+                        else if (rental.Status == "Cancelled")
+                        {
+                            <span class="badge bg-secondary">Đã hủy</span>
+                        }
+                        else if (rental.Status == "Renting")
                         {
                             if (isOverdue)
                             {
@@ -66,7 +74,29 @@
                             <span class="badge bg-warning">@rental.Status</span>
                         }
                     </td>
-         
+                    <td>
+                        @if (rental.Status == "Renting" || rental.Status == "Overdue" || rental.Status == "PendingPayment")
+                        {
+                            @if (rental.Status == "Renting" || rental.Status == "Overdue")
+                            {
+                                <button type="button" class="btn btn-sm btn-success me-1" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#extendModal"
+                                        data-transaction-id="@rental.TransactionId"
+                                        data-book-title="@rental.Book.Title">
+                                    <i class="fas fa-clock"></i> Gia hạn
+                                </button>
+                            }
+                            <button type="button" class="btn btn-sm btn-danger" 
+                                    onclick="confirmCancel(@rental.TransactionId, '@rental.Book.Title')">
+                                <i class="fas fa-times"></i> Hủy
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
@@ -79,3 +109,75 @@
         <i class="fas fa-info-circle"></i> Bạn chưa thuê sách nào.
     </div>
 }
+
+<!-- Modal Gia hạn -->
+<div class="modal fade" id="extendModal" tabindex="-1" aria-labelledby="extendModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="extendModalLabel">Gia hạn sách</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="extendForm" method="post" asp-action="ExtendRental">
+                <div class="modal-body">
+                    <input type="hidden" id="extendTransactionId" name="transactionId" />
+                    <p>Bạn muốn gia hạn sách <strong id="extendBookTitle"></strong> thêm bao nhiêu ngày?</p>
+                    
+                    <div class="mb-3">
+                        <label for="additionalDays" class="form-label">Số ngày gia hạn:</label>
+                        <select class="form-select" id="additionalDays" name="additionalDays" required>
+                            <option value="">-- Chọn số ngày --</option>
+                            <option value="7">7 ngày</option>
+                            <option value="14">14 ngày</option>
+                            <option value="30">30 ngày</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-success">Xác nhận gia hạn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Form ẩn để hủy -->
+<form id="cancelForm" method="post" asp-action="CancelRental" style="display:none;">
+    <input type="hidden" id="cancelTransactionId" name="transactionId" />
+</form>
+
+<script>
+    // Xử lý modal gia hạn
+    var extendModal = document.getElementById('extendModal');
+    extendModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var transactionId = button.getAttribute('data-transaction-id');
+        var bookTitle = button.getAttribute('data-book-title');
+        
+        document.getElementById('extendTransactionId').value = transactionId;
+        document.getElementById('extendBookTitle').textContent = bookTitle;
+    });
+
+    // Xử lý xác nhận hủy
+    function confirmCancel(transactionId, bookTitle) {
+        if (confirm('Bạn có chắc chắn muốn hủy thuê sách "' + bookTitle + '"?')) {
+            document.getElementById('cancelTransactionId').value = transactionId;
+            document.getElementById('cancelForm').submit();
+        }
+    }
+
+    // SignalR - Lắng nghe cập nhật từ server
+    const rentalConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/libraryHub")
+        .build();
+
+    rentalConnection.on("RentalUpdated", function () {
+        // Reload trang khi có cập nhật từ trang khác
+        location.reload();
+    });
+
+    rentalConnection.start()
+        .then(() => console.log('SignalR connected for rentals'))
+        .catch(err => console.error('SignalR error:', err));
+</script>
