@@ -1,6 +1,8 @@
 ﻿// Services/OnlineRentalService.cs
 using LibraryManagement.Data;
+using LibraryManagement.Hubs;
 using LibraryManagement.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagement.Services
@@ -9,11 +11,16 @@ namespace LibraryManagement.Services
     {
         private readonly LibraryDbContext _context;
         private readonly INotificationService _notificationService;
+        private readonly IHubContext<LibraryHub> _hubContext;
 
-        public OnlineRentalService(LibraryDbContext context, INotificationService notificationService)
+        public OnlineRentalService(
+            LibraryDbContext context, 
+            INotificationService notificationService,
+            IHubContext<LibraryHub> hubContext)
         {
             _context = context;
             _notificationService = notificationService;
+            _hubContext = hubContext;
         }
 
         public async Task<OnlineRentalTransaction?> RentOnlineBookAsync(int userId, int bookId, int accessDays)
@@ -30,12 +37,15 @@ namespace LibraryManagement.Services
                 ExpiryDate = DateTime.Now.AddDays(accessDays),
                 Amount = book.OnlinePrice.Value,
                 AccessLink = book.OnlineLink,
-                Status = "Active",
-                PaymentStatus = "Pending"
+                Status = "Pending", // Chờ xác nhận
+                PaymentStatus = "Pending" // Chờ thanh toán
             };
 
             _context.OnlineRentalTransactions.Add(transaction);
             await _context.SaveChangesAsync();
+
+            // SignalR: Thông báo có yêu cầu thuê online mới
+            await _hubContext.Clients.All.SendAsync("OnlineRentalUpdated");
 
             return transaction;
         }
@@ -49,13 +59,17 @@ namespace LibraryManagement.Services
             if (transaction == null || transaction.PaymentStatus == "Paid")
                 return false;
 
-            // Simulate payment processing
+            // Xác nhận thanh toán
             transaction.PaymentStatus = "Paid";
+            transaction.Status = "Active"; // Kích hoạt sau khi thanh toán
             await _context.SaveChangesAsync();
 
             await _notificationService.SendNotificationAsync(transaction.UserId,
                 $"Thanh toán thành công! Bạn có thể truy cập sách '{transaction.Book.Title}' online đến {transaction.ExpiryDate:dd/MM/yyyy}",
                 "Success");
+
+            // SignalR: Thông báo cập nhật
+            await _hubContext.Clients.All.SendAsync("OnlineRentalUpdated");
 
             return true;
         }
@@ -104,6 +118,9 @@ namespace LibraryManagement.Services
                 $"Bạn đã hủy thuê sách online '{transaction.Book.Title}' thành công.",
                 "Info");
 
+            // SignalR: Thông báo cập nhật
+            await _hubContext.Clients.All.SendAsync("OnlineRentalUpdated");
+
             return true;
         }
 
@@ -120,6 +137,13 @@ namespace LibraryManagement.Services
             if (transaction.PaymentStatus != "Paid" || transaction.Status != "Active")
                 return false;
 
+            // Tính phí gia hạn (giá online / 30 ngày * số ngày gia hạn)
+            decimal dailyRate = transaction.Amount / 30; // Giả sử gói ban đầu là 30 ngày
+            decimal extensionFee = dailyRate * additionalDays;
+            
+            // Cộng thêm tiền
+            transaction.Amount += extensionFee;
+
             // Cập nhật hạn mới
             transaction.ExpiryDate = transaction.ExpiryDate.AddDays(additionalDays);
 
@@ -127,8 +151,11 @@ namespace LibraryManagement.Services
 
             // Thông báo cho user
             await _notificationService.SendNotificationAsync(transaction.UserId,
-                $"Bạn đã gia hạn sách online '{transaction.Book.Title}' thêm {additionalDays} ngày. Hạn mới: {transaction.ExpiryDate:dd/MM/yyyy}",
+                $"Bạn đã gia hạn sách online '{transaction.Book.Title}' thêm {additionalDays} ngày. Phí gia hạn: {extensionFee:N0} VND. Hạn mới: {transaction.ExpiryDate:dd/MM/yyyy}",
                 "Success");
+
+            // SignalR: Thông báo cập nhật
+            await _hubContext.Clients.All.SendAsync("OnlineRentalUpdated");
 
             return true;
         }

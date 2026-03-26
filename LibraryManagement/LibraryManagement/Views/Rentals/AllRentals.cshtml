@@ -434,7 +434,7 @@
                                     <th>Số tiền</th>
                                     <th>Thanh toán</th>
                                     <th>Trạng thái</th>
-                                    <th>Link truy cập</th>
+                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -501,10 +501,22 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (rental.Status == "Active")
+                                            @if (rental.Status == "Cancelled")
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-ban"></i> Đã hủy
+                                                </span>
+                                            }
+                                            else if (rental.Status == "Active")
                                             {
                                                 <span class="badge bg-success">
                                                     <i class="fas fa-check"></i> Đang hoạt động
+                                                </span>
+                                            }
+                                            else if (rental.Status == "Pending")
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-clock"></i> Chờ xác nhận
                                                 </span>
                                             }
                                             else
@@ -515,7 +527,20 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (!string.IsNullOrEmpty(rental.AccessLink))
+                                            @if (rental.PaymentStatus == "Pending" && rental.Status != "Cancelled")
+                                            {
+                                                <form asp-controller="OnlineRentals" asp-action="ProcessPayment" method="post" style="display:inline;">
+                                                    <input type="hidden" name="transactionId" value="@rental.OnlineTransactionId" />
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-check-circle"></i> Xác nhận thanh toán
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (rental.Status == "Cancelled")
+                                            {
+                                                <span class="text-muted">Đã hủy</span>
+                                            }
+                                            else if (rental.PaymentStatus == "Paid" && !string.IsNullOrEmpty(rental.AccessLink))
                                             {
                                                 <a href="@rental.AccessLink" class="btn btn-sm btn-primary" target="_blank">
                                                     <i class="fas fa-external-link-alt"></i> Truy cập
@@ -523,7 +548,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted">Chưa có</span>
+                                                <span class="text-muted">-</span>
                                             }
                                         </td>
                                     </tr>
