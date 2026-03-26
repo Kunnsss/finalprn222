@@ -1,4 +1,4 @@
-﻿<!-- Views/OnlineRentals/MyOnlineRentals.cshtml -->
+<!-- Views/OnlineRentals/MyOnlineRentals.cshtml -->
 @model IEnumerable<LibraryManagement.Models.OnlineRentalTransaction>
 @{
     ViewData["Title"] = "Sách Online đã thuê";
@@ -78,3 +78,5 @@
         <i class="fas fa-info-circle"></i> Bạn chưa thuê sách online nào.
     </div>
 }
+
+@await Html.PartialAsync("_Pagination")

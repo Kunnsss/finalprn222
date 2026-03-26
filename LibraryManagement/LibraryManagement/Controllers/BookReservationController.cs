@@ -26,11 +26,24 @@ namespace LibraryManagement.Controllers
         #region User Actions
 
         // Xem danh sách đặt chỗ của user
-        public async Task<IActionResult> MyReservations()
+        public async Task<IActionResult> MyReservations(int page = 1, int pageSize = 8)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             var reservations = await _reservationService.GetUserReservationsAsync(userId);
-            return View(reservations);
+            var list = reservations.OrderByDescending(r => r.ReservationDate).ToList();
+
+            int total = list.Count;
+            int totalPages = (int)Math.Ceiling(total / (double)pageSize);
+            if (page < 1) page = 1;
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var paged = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalItems = total;
+            ViewBag.TotalPages = totalPages;
+            return View(paged);
         }
 
         // Đặt chỗ sách

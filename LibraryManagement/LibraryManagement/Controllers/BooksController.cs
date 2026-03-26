@@ -25,7 +25,12 @@ namespace LibraryManagement.Controllers
         }
 
         [AllowAnonymous]
-        public async Task<IActionResult> Index(string? search, int? categoryId)
+        public async Task<IActionResult> Index(
+            string? search,
+            int? categoryId,
+            string? bookType,
+            int page = 1,
+            int pageSize = 12)
         {
             var books = _context.Books.Include(b => b.Category).AsQueryable();
 
@@ -39,11 +44,36 @@ namespace LibraryManagement.Controllers
                 books = books.Where(b => b.CategoryId == categoryId);
             }
 
+            // Lọc theo loại sách: vật lý hoặc online
+            if (!string.IsNullOrEmpty(bookType))
+            {
+                if (bookType == "physical")
+                    books = books.Where(b => b.IsPhysical);
+                else if (bookType == "online")
+                    books = books.Where(b => !b.IsPhysical);
+            }
+
+            int totalBooks = await books.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalBooks / (double)pageSize);
+            if (page < 1) page = 1;
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var pagedBooks = await books
+                .OrderByDescending(b => b.CreatedDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             ViewBag.Categories = await _context.Categories.ToListAsync();
             ViewBag.Search = search;
             ViewBag.CategoryId = categoryId;
+            ViewBag.BookType = bookType;
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalBooks = totalBooks;
+            ViewBag.TotalPages = totalPages;
 
-            return View(await books.ToListAsync());
+            return View(pagedBooks);
         }
 
         [AllowAnonymous]

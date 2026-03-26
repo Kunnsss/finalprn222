@@ -1,4 +1,4 @@
-﻿<!-- Views/Rentals/MyRentals.cshtml -->
+<!-- Views/Rentals/MyRentals.cshtml -->
 @model IEnumerable<LibraryManagement.Models.RentalTransaction>
 @{
     ViewData["Title"] = "Sách đã thuê";
@@ -79,3 +79,5 @@
         <i class="fas fa-info-circle"></i> Bạn chưa thuê sách nào.
     </div>
 }
+
+@await Html.PartialAsync("_Pagination")
