@@ -26,13 +26,56 @@ namespace LibraryManagement.Services
             _hubContext = hubContext;
         }
 
+        public async Task<bool> ReportLostBookAsync(int transactionId, int reportingUserId)
+        {
+            var transaction = await _context.RentalTransactions
+                .Include(t => t.Book)
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
+
+            if (transaction == null || transaction.Status == "Returned" || transaction.Status == "Lost")
+                return false;
+
+            if (transaction.UserId != reportingUserId)
+                return false;
+
+            transaction.ReturnDate = DateTime.Now;
+            transaction.Status = "Lost";
+
+            await CalculateLateFeeAsync(transactionId);
+
+            var book = transaction.Book;
+            if (book.Quantity > 0)
+                book.Quantity -= 1;
+
+            await _context.SaveChangesAsync();
+
+            var renterName = transaction.User?.FullName ?? "Người thuê";
+            var bookTitle = book.Title;
+            // Thông báo gửi tới Admin/Thủ thư khi user bấm báo mất (chuông + danh sách thông báo)
+            var msg = $"Đã báo mất sách: \"{bookTitle}\" — người thuê: {renterName} — mã giao dịch #{transaction.TransactionId}. Xem chi tiết tại Quản lý thuê sách.";
+            await _notificationService.SendNotificationToAllAdminsAsync(msg, "LostBook");
+
+            await _notificationService.SendNotificationAsync(transaction.UserId,
+                $"Bạn đã báo mất sách \"{bookTitle}\". Thư viện đã nhận thông báo. Mã giao dịch: #{transaction.TransactionId}.",
+                "Warning");
+
+            await _hubContext.Clients.All.SendAsync("BookAvailabilityUpdated", new
+            {
+                BookId = transaction.BookId,
+                AvailableQuantity = book.AvailableQuantity
+            });
+
+            return true;
+        }
+
         public async Task<bool> ReturnBookAsync(int transactionId)
         {
             var transaction = await _context.RentalTransactions
                 .Include(t => t.Book)
                 .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
 
-            if (transaction == null || transaction.Status == "Returned")
+            if (transaction == null || transaction.Status == "Returned" || transaction.Status == "Lost")
                 return false;
 
             transaction.ReturnDate = DateTime.Now;
@@ -151,7 +194,7 @@ namespace LibraryManagement.Services
             return await _context.RentalTransactions
                 .Include(r => r.User)
                 .Include(r => r.Book)
-                .Where(r => r.Status != "Returned" && r.DueDate < DateTime.Now)
+                .Where(r => r.Status != "Returned" && r.Status != "Lost" && r.DueDate < DateTime.Now)
                 .OrderBy(r => r.DueDate)
                 .ToListAsync();
         }
