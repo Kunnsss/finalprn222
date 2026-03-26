@@ -9,5 +9,7 @@ namespace LibraryManagement.Services
         Task<bool> ProcessPaymentAsync(int transactionId);
         Task<List<OnlineRentalTransaction>> GetUserOnlineRentalsAsync(int userId);
         Task<string?> GetAccessLinkAsync(int transactionId, int userId);
+        Task<bool> CancelOnlineRentalAsync(int transactionId, int userId);
+        Task<bool> ExtendOnlineRentalAsync(int transactionId, int additionalDays);
     }
 }

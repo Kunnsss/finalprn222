@@ -3,25 +3,29 @@
     ViewData["Title"] = "Danh sách sách";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    string ShelfLetter(string? title)
-    {
-        if (string.IsNullOrWhiteSpace(title)) return "#";
-        var c = title.Trim()[0];
-        if (!char.IsLetter(c)) return "#";
-        var u = char.ToUpperInvariant(c);
-        return (u >= 'A' && u <= 'Z') ? u.ToString() : "#";
-    }
+    var totalBooks = ViewBag.TotalBooks ?? 0;
+    var totalPages = ViewBag.TotalPages ?? 1;
+    var currentPage = ViewBag.Page ?? 1;
+    var currentBookType = ViewBag.BookType ?? "";
 
-    var books = Model.ToList();
-    var count = books.Count;
-    var letters = Enumerable.Range('A', 26).Select(i => ((char)i).ToString()).ToList();
+    string BuildUrl(int page, string? bookType = null)
+    {
+        var url = Url.Action("Index", "Books") + $"?page={page}";
+        if (!string.IsNullOrEmpty(ViewBag.Search))
+            url += $"&search={Uri.EscapeDataString(ViewBag.Search)}";
+        if (ViewBag.CategoryId != null)
+            url += $"&categoryId={ViewBag.CategoryId}";
+        if (!string.IsNullOrEmpty(bookType))
+            url += $"&bookType={bookType}";
+        return url;
+    }
 }
 
 <div class="lm-page-header">
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <h1 class="lm-page-title">
             Sách
-            <span class="lm-count-badge" id="booksCountBadge">@count</span>
+            <span class="lm-count-badge" id="booksCountBadge">@totalBooks</span>
         </h1>
     </div>
     <div class="lm-toolbar ms-lg-auto">
@@ -50,7 +54,39 @@
     </div>
 </div>
 
+@* ==================== TAB LỌC LOẠI SÁCH ==================== *@
+<div class="d-flex align-items-center gap-2 mb-3">
+    <span class="text-muted small fw-semibold">Loại sách:</span>
+    <div class="btn-group btn-group-sm" role="group">
+        <a href="@(Url.Action("Index", "Books")
+            + (string.IsNullOrEmpty(ViewBag.Search) ? "" : "?search=" + Uri.EscapeDataString(ViewBag.Search ?? ""))
+            + (ViewBag.CategoryId != null ? (string.IsNullOrEmpty(ViewBag.Search) ? "?" : "&") + $"categoryId={ViewBag.CategoryId}" : ""))"
+           class="btn btn-sm @(currentBookType == "" ? "btn-primary" : "btn-outline-secondary")">
+            <i class="fas fa-book"></i> Tất cả
+        </a>
+        <a href="@(Url.Action("Index", "Books")
+            + "?bookType=physical"
+            + (string.IsNullOrEmpty(ViewBag.Search) ? "" : "&search=" + Uri.EscapeDataString(ViewBag.Search ?? ""))
+            + (ViewBag.CategoryId != null ? "&categoryId=" + ViewBag.CategoryId : ""))"
+           class="btn btn-sm @(currentBookType == "physical" ? "btn-primary" : "btn-outline-secondary")">
+            <i class="fas fa-box"></i> Sách vật lý
+        </a>
+        <a href="@(Url.Action("Index", "Books")
+            + "?bookType=online"
+            + (string.IsNullOrEmpty(ViewBag.Search) ? "" : "&search=" + Uri.EscapeDataString(ViewBag.Search ?? ""))
+            + (ViewBag.CategoryId != null ? "&categoryId=" + ViewBag.CategoryId : ""))"
+           class="btn btn-sm @(currentBookType == "online" ? "btn-primary" : "btn-outline-secondary")">
+            <i class="fas fa-cloud"></i> Sách online
+        </a>
+    </div>
+</div>
+
 <form asp-action="Index" method="get" id="booksSearchForm" class="mb-3">
+    @* Giữ lại bookType khi search *@
+    @if (!string.IsNullOrEmpty(currentBookType))
+    {
+        <input type="hidden" name="bookType" value="@currentBookType" />
+    }
     <div class="d-flex flex-wrap align-items-center gap-2">
         <div class="lm-search flex-grow-1" style="max-width: 100%;">
             <i class="fas fa-search"></i>
@@ -63,7 +99,7 @@
 
     <div class="collapse lm-filter-panel mt-3" id="booksFilterPanel">
         <div class="row g-2 align-items-end">
-            <div class="col-md-8">
+            <div class="col-md-5">
                 <label class="form-label small text-muted mb-1">Thể loại</label>
                 <select name="categoryId" class="form-select">
                     <option value="">Tất cả thể loại</option>
@@ -85,7 +121,15 @@
                     }
                 </select>
             </div>
-            <div class="col-md-4 d-grid">
+            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">Loại sách</label>
+                <select name="bookType" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="physical" selected="@(currentBookType == "physical")">Sách vật lý</option>
+                    <option value="online" selected="@(currentBookType == "online")">Sách online</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-grid">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-check"></i> Áp dụng
                 </button>
@@ -94,23 +138,10 @@
     </div>
 </form>
 
-<div class="alpha-strip" id="alphaStrip" role="toolbar" aria-label="Lọc theo chữ cái">
-    <button type="button" class="active" data-alpha="ALL">Tất cả</button>
-    @foreach (var L in letters)
-    {
-        <button type="button" data-alpha="@L">@L</button>
-    }
-    <button type="button" data-alpha="#">#</button>
-</div>
-
 <div class="row g-3" id="booksContainer">
-    @foreach (var book in books)
+    @foreach (var book in Model)
     {
-        var letter = ShelfLetter(book.Title);
         <div class="lm-book-item col-6 col-md-4 col-xl-3"
-             data-title="@book.Title"
-             data-author="@book.Author"
-             data-letter="@letter"
              data-sort-title="@(book.Title ?? "")"
              data-sort-author="@(book.Author ?? "")">
             <article class="lm-book-card h-100 d-flex flex-column">
@@ -200,7 +231,75 @@
     }
 </div>
 
-@if (!books.Any())
+@* ==================== PHÂN TRANG ==================== *@
+@if (totalPages > 1)
+{
+    <nav aria-label="Phân trang sách" class="mt-4">
+        <ul class="pagination justify-content-center flex-wrap gap-1">
+            @{
+                string PageUrl(int p) => BuildUrl(p, currentBookType);
+            }
+            @* Trang đầu *@
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="@PageUrl(1)" title="Trang đầu"><i class="fas fa-angle-double-left"></i></a>
+            </li>
+            @* Trang trước *@
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="@PageUrl(currentPage - 1)" title="Trang trước"><i class="fas fa-angle-left"></i></a>
+            </li>
+
+            @* Các trang *@
+            @{
+                int startPage = Math.Max(1, currentPage - 2);
+                int endPage = Math.Min(totalPages, currentPage + 2);
+                if (endPage - startPage < 4)
+                {
+                    if (startPage == 1) endPage = Math.Min(totalPages, startPage + 4);
+                    else if (endPage == totalPages) startPage = Math.Max(1, endPage - 4);
+                }
+            }
+            @if (startPage > 1)
+            {
+                <li class="page-item"><a class="page-link" href="@PageUrl(1)">1</a></li>
+                @if (startPage > 2)
+                {
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                }
+            }
+            @for (int i = startPage; i <= endPage; i++)
+            {
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link" href="@PageUrl(i)">@i</a>
+                </li>
+            }
+            @if (endPage < totalPages)
+            {
+                @if (endPage < totalPages - 1)
+                {
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                }
+                <li class="page-item"><a class="page-link" href="@PageUrl(totalPages)">@totalPages</a></li>
+            }
+
+            @* Trang sau *@
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a class="page-link" href="@PageUrl(currentPage + 1)" title="Trang sau"><i class="fas fa-angle-right"></i></a>
+            </li>
+            @* Trang cuối *@
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a class="page-link" href="@PageUrl(totalPages)" title="Trang cuối"><i class="fas fa-angle-double-right"></i></a>
+            </li>
+        </ul>
+        <div class="text-center mt-2">
+            <small class="text-muted">
+                Hiển thị @(((currentPage - 1) * (ViewBag.PageSize ?? 12) + 1))–@(Math.Min(currentPage * (ViewBag.PageSize ?? 12), totalBooks)) của @totalBooks sách
+                | Trang @currentPage / @totalPages
+            </small>
+        </div>
+    </nav>
+}
+
+@if (!Model.Any())
 {
     <div class="lm-empty">
         <i class="fas fa-book-open fa-3x mb-3 d-block opacity-50"></i>
@@ -218,8 +317,6 @@
             const gridBtn = document.getElementById('viewGridBtn');
             const listBtn = document.getElementById('viewListBtn');
             const sortSel = document.getElementById('sortBooks');
-            const alphaStrip = document.getElementById('alphaStrip');
-            let currentAlpha = 'ALL';
 
             function setView(mode) {
                 container.classList.toggle('lm-books-list', mode === 'list');
@@ -248,29 +345,6 @@
             }
 
             sortSel?.addEventListener('change', resort);
-
-            function applyAlpha() {
-                items().forEach(el => {
-                    const L = el.dataset.letter || '#';
-                    let show = true;
-                    if (currentAlpha !== 'ALL') {
-                        show = currentAlpha === '#' ? (L === '#') : (L === currentAlpha);
-                    }
-                    el.classList.toggle('d-none', !show);
-                });
-                const visible = items().filter(el => !el.classList.contains('d-none')).length;
-                const badge = document.getElementById('booksCountBadge');
-                if (badge) badge.textContent = visible;
-            }
-
-            alphaStrip?.querySelectorAll('button[data-alpha]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    alphaStrip.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentAlpha = btn.getAttribute('data-alpha') || 'ALL';
-                    applyAlpha();
-                });
-            });
 
             function showToast(message, type) {
                 const bg = type === 'success' ? '#0d9488' : '#dc3545';

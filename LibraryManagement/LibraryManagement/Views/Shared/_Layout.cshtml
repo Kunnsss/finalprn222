@@ -630,6 +630,7 @@
                         const html = notifications.map(n => {
                             const typeIcon = n.type === "Success" ? "fa-check-circle text-success" :
                                            n.type === "Overdue" ? "fa-exclamation-triangle text-danger" :
+                                           n.type === "LostBook" ? "fa-book-dead text-dark" :
                                            n.type === "BookAvailable" ? "fa-book text-info" :
                                            "fa-info-circle text-primary";
 
@@ -676,12 +677,14 @@
             function showToast(message, type) {
                 const alertClass = type === "Success" ? "alert-success" :
                                  type === "Overdue" ? "alert-danger" :
+                                 type === "LostBook" ? "alert-dark" :
                                  type === "Warning" ? "alert-warning" :
                                  type === "BookAvailable" ? "alert-info" :
                                  "alert-info";
 
                 const iconClass = type === "Success" ? "fa-check-circle" :
                                 type === "Overdue" ? "fa-exclamation-triangle" :
+                                type === "LostBook" ? "fa-book-dead" :
                                 type === "Warning" ? "fa-exclamation-circle" :
                                 type === "BookAvailable" ? "fa-book" :
                                 "fa-info-circle";

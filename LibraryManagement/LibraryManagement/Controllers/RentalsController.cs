@@ -1,4 +1,4 @@
-﻿// Controllers/RentalsController.cs
+// Controllers/RentalsController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
@@ -27,11 +27,24 @@ namespace LibraryManagement.Controllers
             _historyService = historyService;
         }
 
-        public async Task<IActionResult> MyRentals()
+        public async Task<IActionResult> MyRentals(int page = 1, int pageSize = 8)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var rentals = await _rentalService.GetUserRentalsAsync(userId);
-            return View(rentals);
+            var query = await _rentalService.GetUserRentalsAsync(userId);
+            var list = query.OrderByDescending(r => r.RentalDate).ToList();
+
+            int total = list.Count;
+            int totalPages = (int)Math.Ceiling(total / (double)pageSize);
+            if (page < 1) page = 1;
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var paged = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalItems = total;
+            ViewBag.TotalPages = totalPages;
+            return View(paged);
         }
 
         [HttpGet]
@@ -78,7 +91,7 @@ namespace LibraryManagement.Controllers
             // Lưu vào ReadingHistory
             await _historyService.TrackBookView(userId, model.BookId);
 
-            TempData["SuccessMessage"] = $"Thuê sách thành công! Tổng tiền: {transaction.TotalAmount:N0} VND. Hạn trả: {transaction.DueDate:dd/MM/yyyy}";
+            TempData["SuccessMessage"] = $"Đăng ký thuê sách thành công! Tổng tiền: {transaction.TotalAmount:N0} VND. Hạn trả: {transaction.DueDate:dd/MM/yyyy}. Vui lòng đến quầy để thanh toán.";
             return RedirectToAction(nameof(MyRentals));
         }
 
@@ -125,24 +138,36 @@ namespace LibraryManagement.Controllers
             return RedirectToAction(nameof(MyRentals));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReportLost(int transactionId)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var ok = await _rentalService.ReportLostBookAsync(transactionId, userId);
+
+            if (ok)
+                TempData["SuccessMessage"] = "Đã ghi nhận báo mất sách. Thư viện đã nhận thông báo.";
+            else
+                TempData["ErrorMessage"] = "Không thể ghi nhận báo mất. Giao dịch không hợp lệ hoặc đã kết thúc.";
+
+            return RedirectToAction(nameof(MyRentals));
+        }
+
         [Authorize(Roles = "Admin,Librarian")]
         public async Task<IActionResult> AllRentals()
         {
-            // Lấy giao dịch thuê trực tiếp (offline)
             var offlineRentals = await _context.RentalTransactions
                 .Include(r => r.User)
                 .Include(r => r.Book)
                 .OrderByDescending(r => r.RentalDate)
                 .ToListAsync();
 
-            // Lấy giao dịch thuê online
             var onlineRentals = await _context.OnlineRentalTransactions
                 .Include(r => r.User)
                 .Include(r => r.Book)
                 .OrderByDescending(r => r.PurchaseDate)
                 .ToListAsync();
 
-            // Tạo ViewModel để truyền cả 2 loại giao dịch
             var viewModel = new AllRentalsViewModel
             {
                 OfflineRentals = offlineRentals,
@@ -159,7 +184,7 @@ namespace LibraryManagement.Controllers
             var overdueOffline = await _context.RentalTransactions
                 .Include(r => r.User)
                 .Include(r => r.Book)
-                .Where(r => r.Status != "Returned" && r.DueDate < DateTime.Now)
+                .Where(r => r.Status != "Returned" && r.Status != "Lost" && r.DueDate < DateTime.Now)
                 .OrderBy(r => r.DueDate)
                 .ToListAsync();
 
@@ -179,6 +204,67 @@ namespace LibraryManagement.Controllers
             };
 
             return View("AllRentals", viewModel); // Dùng lại view AllRentals
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelRental(int transactionId)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var success = await _rentalService.CancelRentalAsync(transactionId, userId);
+
+            if (success)
+            {
+                TempData["SuccessMessage"] = "Hủy thuê sách thành công!";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Không thể hủy thuê sách. Vui lòng thử lại.";
+            }
+
+            return RedirectToAction(nameof(MyRentals));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ExtendRental(int transactionId, int additionalDays)
+        {
+            if (additionalDays <= 0)
+            {
+                TempData["ErrorMessage"] = "Số ngày gia hạn không hợp lệ.";
+                return RedirectToAction(nameof(MyRentals));
+            }
+
+            var success = await _rentalService.ExtendRentalAsync(transactionId, additionalDays);
+
+            if (success)
+            {
+                TempData["SuccessMessage"] = $"Gia hạn sách thành công thêm {additionalDays} ngày!";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Không thể gia hạn sách. Vui lòng thử lại.";
+            }
+
+            return RedirectToAction(nameof(MyRentals));
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Librarian")]
+        public async Task<IActionResult> ConfirmPayment(int transactionId)
+        {
+            var success = await _rentalService.ConfirmPaymentAsync(transactionId);
+
+            if (success)
+            {
+                TempData["SuccessMessage"] = "Xác nhận thanh toán thành công!";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Không thể xác nhận thanh toán. Vui lòng thử lại.";
+            }
+
+            return RedirectToAction(nameof(AllRentals));
         }
     }
 }
