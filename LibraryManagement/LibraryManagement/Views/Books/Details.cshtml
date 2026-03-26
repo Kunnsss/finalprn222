@@ -1,4 +1,4 @@
-﻿<!-- Views/Books/Details.cshtml - ĐÃ SỬA LỖI -->
+<!-- Views/Books/Details.cshtml - ĐÃ SỬA LỖI -->
 @model LibraryManagement.Models.Book
 @{
     ViewData["Title"] = Model.Title;
@@ -19,22 +19,28 @@
         }
 
         <div class="mt-3">
-            <!-- Availability Status - Cập nhật realtime -->
-            <div class="alert @(Model.AvailableQuantity > 0 ? "alert-success" : "alert-danger")" id="availabilityStatus">
-                <i class="fas fa-box"></i>
-                <strong>
-                    @if (Model.AvailableQuantity > 0)
-                    {
-                        <span>Còn sách</span>
-                    }
-                    else
-                    {
-                        <span>Hết sách</span>
-                    }
-                </strong>
-                <br />
-                Còn lại: <strong id="availableQty">@Model.AvailableQuantity</strong>/@Model.Quantity
-            </div>
+            @if (Model.IsPhysical)
+            {
+                <!-- Chỉ hiện availability cho sách vật lý -->
+                <div class="alert @(Model.AvailableQuantity > 0 ? "alert-success" : "alert-danger")" id="availabilityStatus">
+                    <i class="fas fa-box"></i>
+                    <strong>
+                        @(Model.AvailableQuantity > 0 ? "Còn sách" : "Hết sách")
+                    </strong>
+                    <br />
+                    Còn lại: <strong id="availableQty">@Model.AvailableQuantity</strong>/@Model.Quantity
+                </div>
+            }
+            else
+            {
+                <!-- Sách online - hiện giá online -->
+                <div class="alert alert-info">
+                    <i class="fas fa-cloud"></i>
+                    <strong>Sách Online</strong>
+                    <br />
+                    Giá: <strong class="text-primary">@Model.OnlinePrice?.ToString("N0") VND</strong>
+                </div>
+            }
 
             <!-- Actions -->
             <div class="d-grid gap-2">
@@ -64,7 +70,7 @@
                         </a>
                     }
 
-                    @* NÚT ĐẶT CHỖ *@
+                    @* NÚT ĐẶT CHỖ - chỉ hiện cho sách vật lý *@
                     @if (Model.IsPhysical)
                     {
                         <form asp-controller="BookReservation" asp-action="Reserve" method="post" id="reserveForm">
@@ -404,31 +410,28 @@
         @if (User.Identity.IsAuthenticated)
         {
                 <text>
-                // Đợi SignalR connect xong từ _Layout
+                // Chỉ lắng nghe cập nhật số lượng cho sách vật lý
                 setTimeout(() => {
                     if (typeof connection !== 'undefined' && connection) {
-                        // Lắng nghe sự kiện cập nhật số lượng sách
                         connection.on("BookAvailabilityUpdated", function(data) {
                             if (data.bookId === bookId) {
                                 console.log('Book availability updated:', data);
-                                document.getElementById('availableQty').textContent = data.availableQuantity;
 
                                 const status = document.getElementById('availabilityStatus');
                                 const btnReserve = document.getElementById('btnReserve');
 
-                                if (data.availableQuantity > 0) {
-                                    status.className = 'alert alert-success';
-                                    status.innerHTML = '<i class="fas fa-box"></i> <strong>Còn sách</strong><br />Còn lại: <strong id="availableQty">' + data.availableQuantity + '</strong>/@Model.Quantity';
+                                // Chỉ cập nhật DOM nếu là sách vật lý
+                                if (status && btnReserve) {
+                                    if (data.availableQuantity > 0) {
+                                        status.className = 'alert alert-success';
+                                        status.innerHTML = '<i class="fas fa-box"></i> <strong>Còn sách</strong><br />Còn lại: <strong id="availableQty">' + data.availableQuantity + '</strong>/@Model.Quantity';
 
-                                    if (btnReserve) {
                                         btnReserve.disabled = true;
                                         btnReserve.title = 'Chỉ có thể đặt chỗ khi sách hết';
-                                    }
-                                } else {
-                                    status.className = 'alert alert-danger';
-                                    status.innerHTML = '<i class="fas fa-box"></i> <strong>Hết sách</strong><br />Còn lại: <strong id="availableQty">0</strong>/@Model.Quantity';
+                                    } else {
+                                        status.className = 'alert alert-danger';
+                                        status.innerHTML = '<i class="fas fa-box"></i> <strong>Hết sách</strong><br />Còn lại: <strong id="availableQty">0</strong>/@Model.Quantity';
 
-                                    if (btnReserve) {
                                         btnReserve.disabled = false;
                                         btnReserve.title = 'Đặt chỗ ngay';
                                     }

@@ -100,25 +100,64 @@
                         </div>
                     </div>
 
+                    @* ==================== LOẠI SÁCH ==================== *@
+                    <input type="hidden" name="IsPhysical" id="hiddenIsPhysical" value="true" />
                     <div class="mb-3">
-                        <div class="form-check">
-                            <input asp-for="IsPhysical" class="form-check-input" type="checkbox" id="isPhysical" checked onchange="toggleBookType()" />
-                            <label class="form-check-label" for="isPhysical">
-                                Sách vật lý (bỏ chọn nếu là sách online)
-                            </label>
+                        <label class="form-label fw-semibold">Loại sách <span class="text-danger">*</span></label>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check p-3 border rounded @(Model == null || Model.IsPhysical ? "border-primary bg-light" : "")
+                                             cursor-pointer book-type-option" id="typePhysicalCard"
+                                             onclick="selectBookType('physical')">
+                                            <input class="form-check-input" type="radio" name="BookTypeSelection" id="typePhysical"
+                                                   value="physical" checked="@(Model == null || Model.IsPhysical)"
+                                                   onchange="toggleBookType()" />
+                                            <label class="form-check-label w-100 cursor-pointer" for="typePhysical">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fas fa-box fa-2x text-primary"></i>
+                                                    <div>
+                                                        <strong>Sách vật lý</strong>
+                                                        <div class="small text-muted">Cần nhập số lượng & giá thuê</div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check p-3 border rounded @(Model != null && !Model.IsPhysical ? "border-info bg-light" : "")
+                                             cursor-pointer book-type-option" id="typeOnlineCard"
+                                             onclick="selectBookType('online')">
+                                            <input class="form-check-input" type="radio" name="BookTypeSelection" id="typeOnline"
+                                                   value="online" checked="@(Model != null && !Model.IsPhysical)"
+                                                   onchange="toggleBookType()" />
+                                            <label class="form-check-label w-100 cursor-pointer" for="typeOnline">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fas fa-cloud fa-2x text-info"></i>
+                                                    <div>
+                                                        <strong>Sách Online</strong>
+                                                        <div class="small text-muted">Nhập giá & link đọc</div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div id="physicalBookFields">
                         <div class="mb-3">
-                            <label asp-for="Quantity" class="form-label">Số lượng</label>
-                            <input asp-for="Quantity" type="number" class="form-control" placeholder="Nhập số lượng" />
+                            <label asp-for="Quantity" class="form-label">Số lượng <span class="text-danger">*</span></label>
+                            <input asp-for="Quantity" type="number" class="form-control" placeholder="Nhập số lượng" min="1" />
                             <span asp-validation-for="Quantity" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="RentalPrice" class="form-label">Giá thuê (VND/ngày)</label>
-                            <input asp-for="RentalPrice" type="number" step="0.01" class="form-control" placeholder="Nhập giá thuê" />
+                            <label asp-for="RentalPrice" class="form-label">Giá thuê (VND/ngày) <span class="text-danger">*</span></label>
+                            <input asp-for="RentalPrice" type="number" step="0.01" class="form-control" placeholder="Nhập giá thuê" min="0" />
                             <span asp-validation-for="RentalPrice" class="text-danger"></span>
                         </div>
                     </div>
@@ -126,7 +165,7 @@
                     <div id="onlineBookFields" style="display: none;">
                         <div class="mb-3">
                             <label asp-for="OnlinePrice" class="form-label">Giá online (VND) <span class="text-danger">*</span></label>
-                            <input asp-for="OnlinePrice" type="number" step="0.01" class="form-control" placeholder="Nhập giá online" />
+                            <input asp-for="OnlinePrice" type="number" step="0.01" class="form-control" placeholder="Nhập giá online" min="0" />
                             <span asp-validation-for="OnlinePrice" class="text-danger"></span>
                         </div>
 
@@ -182,14 +221,50 @@
             }
         }
 
+        function setSectionInputsEnabled(sectionId, enabled) {
+            var section = document.getElementById(sectionId);
+            if (!section) return;
+            section.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach(function (el) {
+                el.disabled = !enabled;
+            });
+        }
+
         function toggleBookType() {
-            var isPhysical = document.getElementById('isPhysical').checked;
-            document.getElementById('physicalBookFields').style.display = isPhysical ? 'block' : 'none';
-            document.getElementById('onlineBookFields').style.display = isPhysical ? 'none' : 'block';
+            var typePhysical = document.getElementById('typePhysical').checked;
+            var physicalFields = document.getElementById('physicalBookFields');
+            var onlineFields = document.getElementById('onlineBookFields');
+            var physicalCard = document.getElementById('typePhysicalCard');
+            var onlineCard = document.getElementById('typeOnlineCard');
+            var hiddenIsPhysical = document.getElementById('hiddenIsPhysical');
+
+            if (typePhysical) {
+                physicalFields.style.display = 'block';
+                onlineFields.style.display = 'none';
+                setSectionInputsEnabled('physicalBookFields', true);
+                setSectionInputsEnabled('onlineBookFields', false);
+                if (physicalCard) physicalCard.className = 'form-check p-3 border rounded border-primary bg-light cursor-pointer book-type-option';
+                if (onlineCard) onlineCard.className = 'form-check p-3 border rounded cursor-pointer book-type-option';
+                if (hiddenIsPhysical) hiddenIsPhysical.value = 'true';
+            } else {
+                physicalFields.style.display = 'none';
+                onlineFields.style.display = 'block';
+                setSectionInputsEnabled('physicalBookFields', false);
+                setSectionInputsEnabled('onlineBookFields', true);
+                if (physicalCard) physicalCard.className = 'form-check p-3 border rounded cursor-pointer book-type-option';
+                if (onlineCard) onlineCard.className = 'form-check p-3 border rounded border-info bg-light cursor-pointer book-type-option';
+                if (hiddenIsPhysical) hiddenIsPhysical.value = 'false';
+            }
+        }
+
+        function selectBookType(type) {
+            var radio = document.getElementById(type === 'physical' ? 'typePhysical' : 'typeOnline');
+            if (radio) {
+                radio.checked = true;
+                toggleBookType();
+            }
         }
 
         $(document).ready(function() {
-            toggleCoverImageOption();
             toggleBookType();
         });
     </script>
