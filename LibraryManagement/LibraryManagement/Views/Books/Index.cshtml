@@ -1,32 +1,72 @@
-﻿@model IEnumerable<LibraryManagement.Models.Book>
+@model IEnumerable<LibraryManagement.Models.Book>
 @{
     ViewData["Title"] = "Danh sách sách";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string ShelfLetter(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return "#";
+        var c = title.Trim()[0];
+        if (!char.IsLetter(c)) return "#";
+        var u = char.ToUpperInvariant(c);
+        return (u >= 'A' && u <= 'Z') ? u.ToString() : "#";
+    }
+
+    var books = Model.ToList();
+    var count = books.Count;
+    var letters = Enumerable.Range('A', 26).Select(i => ((char)i).ToString()).ToList();
 }
 
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h2><i class="fas fa-book"></i> Danh sách sách</h2>
+<div class="lm-page-header">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h1 class="lm-page-title">
+            Sách
+            <span class="lm-count-badge" id="booksCountBadge">@count</span>
+        </h1>
     </div>
-    <div class="col-md-4 text-end">
+    <div class="lm-toolbar ms-lg-auto">
         @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
         {
-            <a asp-action="Create" class="btn btn-success">
+            <a asp-action="Create" class="btn btn-primary btn-sm">
                 <i class="fas fa-plus"></i> Thêm sách
             </a>
         }
+        <div class="btn-group lm-view-toggle" role="group" aria-label="Chế độ xem">
+            <button type="button" class="btn btn-sm btn-outline-secondary active" id="viewGridBtn" title="Lưới bìa">
+                <i class="fas fa-th-large"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="viewListBtn" title="Danh sách">
+                <i class="fas fa-list"></i>
+            </button>
+        </div>
+        <select class="form-select form-select-sm lm-select-teal" id="sortBooks" aria-label="Sắp xếp">
+            <option value="title">Theo tên A–Z</option>
+            <option value="title-desc">Theo tên Z–A</option>
+            <option value="author">Theo tác giả</option>
+        </select>
+        <button class="btn btn-lm-filter btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#booksFilterPanel" aria-expanded="false">
+            <i class="fas fa-sliders-h"></i> Bộ lọc
+        </button>
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <form asp-action="Index" method="get" class="row g-3">
-            <div class="col-md-5">
-                <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Tìm theo tên sách hoặc tác giả..." />
-            </div>
-            <div class="col-md-4">
+<form asp-action="Index" method="get" id="booksSearchForm" class="mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <div class="lm-search flex-grow-1" style="max-width: 100%;">
+            <i class="fas fa-search"></i>
+            <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Bắt đầu tìm kiếm…" autocomplete="off" />
+        </div>
+        <button type="submit" class="btn btn-outline-secondary btn-sm d-none d-md-inline-flex align-items-center gap-1">
+            <i class="fas fa-search"></i> Tìm
+        </button>
+    </div>
+
+    <div class="collapse lm-filter-panel mt-3" id="booksFilterPanel">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label small text-muted mb-1">Thể loại</label>
                 <select name="categoryId" class="form-select">
-                    <option value="">-- Tất cả thể loại --</option>
+                    <option value="">Tất cả thể loại</option>
                     @if (ViewBag.Categories != null)
                     {
                         foreach (var category in ViewBag.Categories as List<LibraryManagement.Models.Category>)
@@ -45,175 +85,214 @@
                     }
                 </select>
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-search"></i> Tìm kiếm
+            <div class="col-md-4 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i> Áp dụng
                 </button>
             </div>
-        </form>
+        </div>
     </div>
+</form>
+
+<div class="alpha-strip" id="alphaStrip" role="toolbar" aria-label="Lọc theo chữ cái">
+    <button type="button" class="active" data-alpha="ALL">Tất cả</button>
+    @foreach (var L in letters)
+    {
+        <button type="button" data-alpha="@L">@L</button>
+    }
+    <button type="button" data-alpha="#">#</button>
 </div>
 
-<div class="row">
-    @foreach (var book in Model)
+<div class="row g-3" id="booksContainer">
+    @foreach (var book in books)
     {
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                @if (!string.IsNullOrEmpty(book.CoverImage))
-                {
-                    <img src="@book.CoverImage" class="card-img-top" alt="@book.Title" style="height: 250px; object-fit: cover;">
-                }
-                else
-                {
-                    <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 250px;">
-                        <i class="fas fa-book fa-5x text-white"></i>
+        var letter = ShelfLetter(book.Title);
+        <div class="lm-book-item col-6 col-md-4 col-xl-3"
+             data-title="@book.Title"
+             data-author="@book.Author"
+             data-letter="@letter"
+             data-sort-title="@(book.Title ?? "")"
+             data-sort-author="@(book.Author ?? "")">
+            <article class="lm-book-card h-100 d-flex flex-column">
+                <a asp-action="Details" asp-route-id="@book.BookId" class="text-decoration-none text-dark">
+                    <div class="lm-book-cover-wrap">
+                        @if (!string.IsNullOrEmpty(book.CoverImage))
+                        {
+                            <img src="@book.CoverImage" class="lm-book-cover" alt="@book.Title" loading="lazy" />
+                        }
+                        else
+                        {
+                            <div class="lm-book-cover placeholder">
+                                <i class="fas fa-book"></i>
+                            </div>
+                        }
                     </div>
-                }
-
-                <div class="card-body">
-                    <h5 class="card-title">@book.Title</h5>
-                    <p class="card-text">
-                        <small class="text-muted">
-                            <i class="fas fa-user"></i> @book.Author
-                            <br />
+                    <div class="lm-book-body">
+                        <h2 class="lm-book-title">@book.Title</h2>
+                        <p class="lm-book-author">@book.Author</p>
+                        <div class="lm-book-meta">
                             @if (book.Category != null)
                             {
-                                <i class="fas fa-tag"></i>
-                                @book.Category.CategoryName
-                                <br />
+                                <span><i class="fas fa-tag"></i> @book.Category.CategoryName</span>
                             }
                             @if (book.IsPhysical)
                             {
-                                <i class="fas fa-book"></i>
-                                <strong>Sách vật lý</strong>
-                                <br />
-                                <i class="fas fa-box"></i>
-                                <span class="@(book.AvailableQuantity > 0 ? "text-success" : "text-danger")">
-                                    Còn lại: @book.AvailableQuantity/@book.Quantity
-                                </span>
-                                <br />
-                                <i class="fas fa-money-bill"></i>
-                                <text>Giá thuê: @book.RentalPrice.ToString("N0") VND/ngày</text>
+                                <span class="ms-1"><i class="fas fa-box"></i> Còn @book.AvailableQuantity/@book.Quantity</span>
                             }
                             else
                             {
-                                <i class="fas fa-laptop"></i>
-                                <strong>Sách online</strong>
-                                <br />
-                                <i class="fas fa-money-bill"></i>
-                                <text>Giá: @(book.OnlinePrice != null ? book.OnlinePrice.Value.ToString("N0") : "0") VND</text>
+                                <span class="ms-1"><i class="fas fa-cloud"></i> Online</span>
                             }
-                        </small>
-                    </p>
-                </div>
-
-                <div class="card-footer bg-transparent">
-                    <div class="d-grid gap-2">
-                        <a asp-action="Details" asp-route-id="@book.BookId" class="btn btn-primary btn-sm">
-                            <i class="fas fa-info-circle"></i> Chi tiết
-                        </a>
-
-                        @if (User.Identity.IsAuthenticated)
+                        </div>
+                    </div>
+                </a>
+                <div class="lm-book-actions mt-auto">
+                    <a asp-action="Details" asp-route-id="@book.BookId" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-info-circle"></i> Chi tiết
+                    </a>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        if (book.IsPhysical)
                         {
-                            if (book.IsPhysical)
+                            if (book.AvailableQuantity > 0)
                             {
-                                if (book.AvailableQuantity > 0)
-                                {
-                                    <a asp-controller="Rentals" asp-action="Rent" asp-route-bookId="@book.BookId" class="btn btn-success btn-sm">
-                                        <i class="fas fa-shopping-cart"></i> Thuê sách
-                                    </a>
-                                }
-                                else
-                                {
-                                    <!-- Hết sách - Hiển thị nút đặt chỗ -->
-                                    <form asp-controller="BookReservation" asp-action="Reserve" method="post" class="d-inline">
-                                        <input type="hidden" name="bookId" value="@book.BookId" />
-                                        <button type="submit" class="btn btn-warning btn-sm w-100">
-                                            <i class="fas fa-bookmark"></i> Đặt chỗ
-                                        </button>
-                                    </form>
-                                    <small class="text-muted d-block mt-1 text-center">
-                                        <i class="fas fa-info-circle"></i> Hết sách - Đặt chỗ để được ưu tiên
-                                    </small>
-                                }
+                                <a asp-controller="Rentals" asp-action="Rent" asp-route-bookId="@book.BookId" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-shopping-cart"></i> Thuê
+                                </a>
                             }
                             else
                             {
-                                <a asp-controller="OnlineRentals" asp-action="RentOnline" asp-route-bookId="@book.BookId" class="btn btn-info btn-sm">
-                                    <i class="fas fa-download"></i> Thuê Online
-                                </a>
+                                <form asp-controller="BookReservation" asp-action="Reserve" method="post" class="d-inline w-100">
+                                    <input type="hidden" name="bookId" value="@book.BookId" />
+                                    <button type="submit" class="btn btn-sm btn-warning w-100">
+                                        <i class="fas fa-bookmark"></i> Đặt chỗ
+                                    </button>
+                                </form>
                             }
                         }
                         else
                         {
-                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-sign-in-alt"></i> Đăng nhập để thuê
+                            <a asp-controller="OnlineRentals" asp-action="RentOnline" asp-route-bookId="@book.BookId" class="btn btn-sm btn-info text-white">
+                                <i class="fas fa-download"></i> Thuê online
                             </a>
                         }
-
-                        @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
-                        {
-                            <div class="btn-group btn-group-sm">
-                                <a asp-action="Edit" asp-route-id="@book.BookId" class="btn btn-warning">
-                                    <i class="fas fa-edit"></i> Sửa
-                                </a>
-                                <a asp-action="Delete" asp-route-id="@book.BookId" class="btn btn-danger">
-                                    <i class="fas fa-trash"></i> Xóa
-                                </a>
-                            </div>
-                        }
-                    </div>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
+                    {
+                        <div class="btn-group btn-group-sm w-100">
+                            <a asp-action="Edit" asp-route-id="@book.BookId" class="btn btn-outline-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@book.BookId" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    }
                 </div>
-            </div>
+            </article>
         </div>
     }
 </div>
 
-@if (!Model.Any())
+@if (!books.Any())
 {
-    <div class="alert alert-info text-center">
-        <i class="fas fa-info-circle"></i> Không tìm thấy sách nào.
+    <div class="lm-empty">
+        <i class="fas fa-book-open fa-3x mb-3 d-block opacity-50"></i>
+        Không tìm thấy sách nào. Thử đổi từ khóa hoặc bộ lọc.
     </div>
 }
 
 @section Scripts {
     <script>
-        // Hiển thị thông báo từ TempData
-        @if (TempData["SuccessMessage"] != null)
-        {
-                    <text>
-                    showToast('@TempData["SuccessMessage"]', 'success');
-                    </text>
-        }
-        @if (TempData["ErrorMessage"] != null)
-        {
-                    <text>
-                    showToast('@TempData["ErrorMessage"]', 'error');
-                    </text>
-        }
+        (function () {
+            const container = document.getElementById('booksContainer');
+            if (!container) return;
 
-        function showToast(message, type) {
-            const bgColor = type === 'success' ? '#28a745' : '#dc3545';
-            const toast = document.createElement('div');
-            toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${bgColor};
-                color: white;
-                padding: 15px 20px;
-                border-radius: 5px;
-                z-index: 9999;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            `;
-            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
-            document.body.appendChild(toast);
+            const items = () => Array.from(container.querySelectorAll('.lm-book-item'));
+            const gridBtn = document.getElementById('viewGridBtn');
+            const listBtn = document.getElementById('viewListBtn');
+            const sortSel = document.getElementById('sortBooks');
+            const alphaStrip = document.getElementById('alphaStrip');
+            let currentAlpha = 'ALL';
 
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.5s';
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
-        }
+            function setView(mode) {
+                container.classList.toggle('lm-books-list', mode === 'list');
+                gridBtn.classList.toggle('active', mode === 'grid');
+                listBtn.classList.toggle('active', mode === 'list');
+            }
+
+            gridBtn?.addEventListener('click', () => setView('grid'));
+            listBtn?.addEventListener('click', () => setView('list'));
+
+            function cmp(a, b, key, desc) {
+                const va = (a.dataset[key] || '').toLowerCase();
+                const vb = (b.dataset[key] || '').toLowerCase();
+                if (va < vb) return desc ? 1 : -1;
+                if (va > vb) return desc ? -1 : 1;
+                return 0;
+            }
+
+            function resort() {
+                const mode = sortSel.value;
+                const arr = items();
+                if (mode === 'title') arr.sort((a, b) => cmp(a, b, 'sortTitle', false));
+                else if (mode === 'title-desc') arr.sort((a, b) => cmp(a, b, 'sortTitle', true));
+                else arr.sort((a, b) => cmp(a, b, 'sortAuthor', false));
+                arr.forEach(el => container.appendChild(el));
+            }
+
+            sortSel?.addEventListener('change', resort);
+
+            function applyAlpha() {
+                items().forEach(el => {
+                    const L = el.dataset.letter || '#';
+                    let show = true;
+                    if (currentAlpha !== 'ALL') {
+                        show = currentAlpha === '#' ? (L === '#') : (L === currentAlpha);
+                    }
+                    el.classList.toggle('d-none', !show);
+                });
+                const visible = items().filter(el => !el.classList.contains('d-none')).length;
+                const badge = document.getElementById('booksCountBadge');
+                if (badge) badge.textContent = visible;
+            }
+
+            alphaStrip?.querySelectorAll('button[data-alpha]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    alphaStrip.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentAlpha = btn.getAttribute('data-alpha') || 'ALL';
+                    applyAlpha();
+                });
+            });
+
+            function showToast(message, type) {
+                const bg = type === 'success' ? '#0d9488' : '#dc3545';
+                const t = document.createElement('div');
+                t.style.cssText = 'position:fixed;top:20px;right:20px;background:' + bg + ';color:#fff;padding:12px 16px;border-radius:10px;z-index:9999;box-shadow:0 8px 24px rgba(15,23,42,.15);max-width:320px;font-size:14px;';
+                t.textContent = message;
+                document.body.appendChild(t);
+                setTimeout(() => { t.remove(); }, 3200);
+            }
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>
+                showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SuccessMessage"]!.ToString() ?? "")), 'success');
+                </text>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <text>
+                showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["ErrorMessage"]!.ToString() ?? "")), 'error');
+                </text>
+            }
+        })();
     </script>
 }
