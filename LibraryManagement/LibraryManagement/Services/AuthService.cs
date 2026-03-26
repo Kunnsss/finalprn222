@@ -18,6 +18,7 @@ namespace LibraryManagement.Services
             _passwordHasher = passwordHasher;
         }
 
+
         #region Authentication Methods
 
         public async Task<User?> AuthenticateAsync(string username, string password)
@@ -54,7 +55,10 @@ namespace LibraryManagement.Services
                 Address = model.Address,
                 RoleId = customerRole.RoleId,
                 IsActive = true,
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.Now,
+                IsEmailVerified = false,
+                EmailVerificationToken = Guid.NewGuid().ToString("N"),
+                EmailVerificationTokenExpiry = DateTime.Now.AddHours(24)
             };
 
             user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
@@ -236,6 +240,28 @@ namespace LibraryManagement.Services
         #endregion
 
         // Services/AuthService.cs - THÊM các methods này vào class AuthService hiện có
+
+        #region Email Verification
+
+        public async Task<string> VerifyEmailAsync(string token)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+
+            if (user == null)
+                return "invalid";
+
+            if (user.EmailVerificationTokenExpiry < DateTime.Now)
+                return "expired";
+
+            user.IsEmailVerified = true;
+            user.EmailVerificationToken = null;
+            user.EmailVerificationTokenExpiry = null;
+            await _context.SaveChangesAsync();
+
+            return "success";
+        }
+
+        #endregion
 
         #region Forgot Password Methods
 
