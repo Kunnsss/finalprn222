@@ -36,6 +36,20 @@ namespace LibraryManagement.Models
         [StringLength(20)]
         public string Status { get; set; } = "Renting"; // Renting, Returned, Overdue, Lost, PendingPayment, Compensated, ...
 
+        // PayOS - Initial / Extension payment
+        public long? RentalPayOSOrderCode { get; set; }
+        [StringLength(100)]
+        public string? RentalPayOSLinkId { get; set; }
+        [StringLength(20)]
+        public string? RentalPaymentStatus { get; set; } = "Pending"; // Pending, Paid, Cancelled
+
+        // PayOS - Late fee payment
+        public long? LateFeePayOSOrderCode { get; set; }
+        [StringLength(100)]
+        public string? LateFeePayOSLinkId { get; set; }
+        [StringLength(20)]
+        public string? LateFeePaymentStatus { get; set; } // null, Pending, Paid, Cancelled
+
         // Calculated property - not mapped to database
         [NotMapped]
         public int RentalDays

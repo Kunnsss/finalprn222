@@ -112,7 +112,7 @@ namespace LibraryManagement.Controllers
                         Xác thực Email
                     </a>
                 </p>
-                <p>Link này sẽ hết hạn sau <strong>24 giờ</strong>.</p>
+                <p>Link này sẽ hết hạn sau <strong>10 phút</strong>.</p>
                 <p>Nếu bạn không thực hiện đăng ký này, hãy bỏ qua email này.</p>";
 
             await _emailService.SendEmailAsync(user.Email, "Xác thực tài khoản - Thư viện", emailBody);
