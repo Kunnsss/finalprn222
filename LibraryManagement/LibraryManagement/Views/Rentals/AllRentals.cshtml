@@ -1,4 +1,4 @@
-﻿@model LibraryManagement.Models.AllRentalsViewModel
+@model LibraryManagement.Models.AllRentalsViewModel
 @{
     ViewData["Title"] = "Quản lý thuê sách";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -254,9 +254,11 @@
                             <tbody>
                                 @foreach (var rental in Model.OfflineRentals)
                                 {
-                                    var isReturned = rental.Status == "Returned" || rental.ReturnDate.HasValue;
-                                    var isOverdue = !isReturned && rental.DueDate < DateTime.Now;
-                                    var rowClass = isOverdue ? "table-danger" : (isReturned ? "" : "table-warning");
+                                    var isLost = rental.Status == "Lost";
+                                    var isReturned = rental.Status == "Returned";
+                                    var isClosed = isReturned || isLost;
+                                    var isOverdue = !isClosed && rental.DueDate < DateTime.Now;
+                                    var rowClass = isLost ? "table-secondary" : (isOverdue ? "table-danger" : (isReturned ? "" : "table-warning"));
 
                                     <tr class="@rowClass">
                                         <td><strong>#@rental.TransactionId</strong></td>
@@ -342,6 +344,12 @@
                                                     <i class="fas fa-check"></i> Đã trả
                                                 </span>
                                             }
+                                            else if (isLost)
+                                            {
+                                                <span class="badge bg-dark" title="Người thuê đã báo mất sách">
+                                                    <i class="fas fa-book-dead"></i> Đã báo mất
+                                                </span>
+                                            }
                                             else if (isOverdue)
                                             {
                                                 <span class="badge bg-danger">
@@ -377,6 +385,10 @@
                                                         <i class="fas fa-undo"></i> Nhận trả
                                                     </button>
                                                 </form>
+                                            }
+                                            else if (isLost)
+                                            {
+                                                <span class="text-muted small"><i class="fas fa-info-circle"></i> Người thuê đã báo mất</span>
                                             }
                                             else
                                             {
@@ -554,7 +566,7 @@
                     <div class="col-md-3">
                         <h6>Đang hoạt động</h6>
                         <h3 class="text-success">
-                            @(Model.OfflineRentals.Count(r => r.Status != "Returned") + Model.OnlineRentals.Count(r => r.Status == "Active"))
+                            @(Model.OfflineRentals.Count(r => r.Status != "Returned" && r.Status != "Lost") + Model.OnlineRentals.Count(r => r.Status == "Active"))
                         </h3>
                     </div>
                 </div>

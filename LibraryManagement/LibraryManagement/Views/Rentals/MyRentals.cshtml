@@ -1,4 +1,4 @@
-﻿<!-- Views/Rentals/MyRentals.cshtml -->
+<!-- Views/Rentals/MyRentals.cshtml -->
 @model IEnumerable<LibraryManagement.Models.RentalTransaction>
 @{
     ViewData["Title"] = "Sách đã thuê";
@@ -6,6 +6,21 @@
 }
 
 <h2 class="mb-4"><i class="fas fa-book-reader"></i> Sách đã thuê của tôi</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 
 <div class="table-responsive">
     <table class="table table-striped table-hover">
@@ -25,8 +40,9 @@
         <tbody>
             @foreach (var rental in Model)
             {
+                var isLost = rental.Status == "Lost";
                 var isOverdue = rental.Status == "Renting" && rental.DueDate < DateTime.Now;
-                var rowClass = isOverdue ? "table-danger" : (rental.Status == "Returned" ? "table-success" : "");
+                var rowClass = isLost ? "table-secondary" : (isOverdue ? "table-danger" : (rental.Status == "Returned" ? "table-success" : ""));
 
                 <tr class="@rowClass">
                     <td>@rental.Book.Title</td>
@@ -68,6 +84,10 @@
                         else if (rental.Status == "Returned")
                         {
                             <span class="badge bg-success">Đã trả</span>
+                        }
+                        else if (rental.Status == "Lost")
+                        {
+                            <span class="badge bg-dark">Đã báo mất</span>
                         }
                         else
                         {

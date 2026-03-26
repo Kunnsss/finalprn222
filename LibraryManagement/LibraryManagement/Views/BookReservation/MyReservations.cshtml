@@ -1,4 +1,4 @@
-﻿@model List<LibraryManagement.Models.BookReservation>
+@model List<LibraryManagement.Models.BookReservation>
 @{
     ViewData["Title"] = "Đặt chỗ của tôi";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -68,3 +68,5 @@ else
         </table>
     </div>
 }
+
+@await Html.PartialAsync("_Pagination")

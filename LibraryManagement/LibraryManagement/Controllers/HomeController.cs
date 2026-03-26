@@ -1,4 +1,4 @@
-﻿// Controllers/HomeController.cs
+// Controllers/HomeController.cs
 using Microsoft.AspNetCore.Mvc;
 using LibraryManagement.Data;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +24,7 @@ namespace LibraryManagement.Controllers
                 .Include(b => b.Category)
                 .Where(b => b.AvailableQuantity > 0 || !b.IsPhysical)
                 .OrderByDescending(b => b.CreatedDate)
-                .Take(6)
+                .Take(8)
                 .ToListAsync();
 
             return View(featuredBooks);

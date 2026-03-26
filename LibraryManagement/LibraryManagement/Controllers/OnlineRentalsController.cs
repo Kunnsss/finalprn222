@@ -1,4 +1,4 @@
-﻿// Controllers/OnlineRentalsController.cs
+// Controllers/OnlineRentalsController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
@@ -26,11 +26,24 @@ namespace LibraryManagement.Controllers
             _historyService = historyService;
         }
 
-        public async Task<IActionResult> MyOnlineRentals()
+        public async Task<IActionResult> MyOnlineRentals(int page = 1, int pageSize = 8)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var rentals = await _onlineRentalService.GetUserOnlineRentalsAsync(userId);
-            return View(rentals);
+            var query = await _onlineRentalService.GetUserOnlineRentalsAsync(userId);
+            var list = query.OrderByDescending(r => r.PurchaseDate).ToList();
+
+            int total = list.Count;
+            int totalPages = (int)Math.Ceiling(total / (double)pageSize);
+            if (page < 1) page = 1;
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var paged = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalItems = total;
+            ViewBag.TotalPages = totalPages;
+            return View(paged);
         }
 
         [HttpGet]

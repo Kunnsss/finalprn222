@@ -25,7 +25,12 @@ namespace LibraryManagement.Controllers
         }
 
         [AllowAnonymous]
-        public async Task<IActionResult> Index(string? search, int? categoryId)
+        public async Task<IActionResult> Index(
+            string? search,
+            int? categoryId,
+            string? bookType,
+            int page = 1,
+            int pageSize = 12)
         {
             var books = _context.Books.Include(b => b.Category).AsQueryable();
 
@@ -39,11 +44,36 @@ namespace LibraryManagement.Controllers
                 books = books.Where(b => b.CategoryId == categoryId);
             }
 
+            // Lọc theo loại sách: vật lý hoặc online
+            if (!string.IsNullOrEmpty(bookType))
+            {
+                if (bookType == "physical")
+                    books = books.Where(b => b.IsPhysical);
+                else if (bookType == "online")
+                    books = books.Where(b => !b.IsPhysical);
+            }
+
+            int totalBooks = await books.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalBooks / (double)pageSize);
+            if (page < 1) page = 1;
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var pagedBooks = await books
+                .OrderByDescending(b => b.CreatedDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             ViewBag.Categories = await _context.Categories.ToListAsync();
             ViewBag.Search = search;
             ViewBag.CategoryId = categoryId;
+            ViewBag.BookType = bookType;
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalBooks = totalBooks;
+            ViewBag.TotalPages = totalPages;
 
-            return View(await books.ToListAsync());
+            return View(pagedBooks);
         }
 
         [AllowAnonymous]
@@ -79,31 +109,52 @@ namespace LibraryManagement.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin,Librarian")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Book book, string CoverImageOption, IFormFile CoverImageFile)
+        public async Task<IActionResult> Create(Book book, string CoverImageOption, IFormFile? CoverImageFile)
         {
+            // Xử lý ảnh bìa (upload file hoặc URL)
+            if (CoverImageOption == "upload" && CoverImageFile != null && CoverImageFile.Length > 0)
+            {
+                book.CoverImage = await SaveBookCoverImageAsync(CoverImageFile);
+            }
+
+            // Xử lý theo loại sách
+            if (!book.IsPhysical)
+            {
+                // Sách online - không cần số lượng vật lý
+                book.Quantity = 0;
+                book.AvailableQuantity = 0;
+                book.RentalPrice = 0;
+            }
+            else
+            {
+                // Sách vật lý - đảm bảo có số lượng hợp lệ
+                if (book.Quantity <= 0)
+                    book.Quantity = 1;
+                book.AvailableQuantity = book.Quantity;
+            }
+
             if (ModelState.IsValid)
             {
-                // Xử lý ảnh bìa
-                if (CoverImageOption == "upload" && CoverImageFile != null && CoverImageFile.Length > 0)
-                {
-                    book.CoverImage = await SaveBookCoverImageAsync(CoverImageFile);
-                }
-                // Nếu chọn URL, CoverImage từ form sẽ được sử dụng
-
-                if (!book.IsPhysical)
-                {
-                    book.Quantity = 0;
-                    book.AvailableQuantity = 0;
-                }
-                else
-                {
-                    book.AvailableQuantity = book.Quantity;
-                }
-
                 _context.Books.Add(book);
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Thêm sách thành công!";
                 return RedirectToAction(nameof(Index));
+            }
+
+            // Lấy danh sách lỗi validation
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .ToList();
+
+            if (errors.Any())
+            {
+                TempData["ErrorMessage"] = "Không thể thêm sách. Vui lòng kiểm tra lại: " + string.Join("; ", errors);
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Không thể thêm sách. Vui lòng kiểm tra lại dữ liệu nhập vào.";
             }
 
             ViewBag.Categories = await _context.Categories.ToListAsync();
@@ -151,22 +202,41 @@ namespace LibraryManagement.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin,Librarian")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Book book, string CoverImageOption, IFormFile CoverImageFile)
+        public async Task<IActionResult> Edit(int id, Book book, string CoverImageOption, IFormFile? CoverImageFile)
         {
             if (id != book.BookId)
+            {
+                TempData["ErrorMessage"] = $"Không thể cập nhật: id route ({id}) khác BookId form ({book.BookId}).";
                 return View("BookNotFound");
+            }
+
+            // Xử lý ảnh bìa (upload file hoặc URL)
+            if (CoverImageOption == "upload" && CoverImageFile != null && CoverImageFile.Length > 0)
+            {
+                book.CoverImage = await SaveBookCoverImageAsync(CoverImageFile);
+            }
+
+            // Xử lý theo loại sách
+            if (!book.IsPhysical)
+            {
+                // Sách online - không cần số lượng vật lý
+                book.Quantity = 0;
+                book.AvailableQuantity = 0;
+                book.RentalPrice = 0;
+            }
+            else
+            {
+                // Sách vật lý - đảm bảo có số lượng hợp lệ
+                if (book.Quantity <= 0)
+                    book.Quantity = 1;
+                if (book.AvailableQuantity > book.Quantity)
+                    book.AvailableQuantity = book.Quantity;
+            }
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Xử lý ảnh bìa
-                    if (CoverImageOption == "upload" && CoverImageFile != null && CoverImageFile.Length > 0)
-                    {
-                        book.CoverImage = await SaveBookCoverImageAsync(CoverImageFile);
-                    }
-                    // Nếu chọn URL, CoverImage từ form sẽ được sử dụng
-
                     _context.Update(book);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Cập nhật sách thành công!";
@@ -179,6 +249,14 @@ namespace LibraryManagement.Controllers
                     throw;
                 }
             }
+
+            var firstError = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault();
+            TempData["ErrorMessage"] = !string.IsNullOrWhiteSpace(firstError)
+                ? $"Không thể cập nhật sách. Lỗi: {firstError}"
+                : "Không thể cập nhật sách. Vui lòng kiểm tra lại dữ liệu nhập vào.";
 
             ViewBag.Categories = await _context.Categories.ToListAsync();
             return View(book);

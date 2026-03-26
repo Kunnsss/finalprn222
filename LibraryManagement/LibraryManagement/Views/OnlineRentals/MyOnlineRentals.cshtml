@@ -1,4 +1,4 @@
-﻿<!-- Views/OnlineRentals/MyOnlineRentals.cshtml -->
+<!-- Views/OnlineRentals/MyOnlineRentals.cshtml -->
 @model IEnumerable<LibraryManagement.Models.OnlineRentalTransaction>
 @{
     ViewData["Title"] = "Sách Online đã thuê";
@@ -172,3 +172,4 @@
         }
     }
 </script>
+@await Html.PartialAsync("_Pagination")

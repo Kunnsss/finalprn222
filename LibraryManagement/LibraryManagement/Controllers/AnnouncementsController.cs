@@ -1,4 +1,4 @@
-﻿// Controllers/AnnouncementsController.cs - Xem thông báo hệ thống
+// Controllers/AnnouncementsController.cs - Xem thông báo hệ thống
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using LibraryManagement.Data;
