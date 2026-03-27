@@ -60,13 +60,8 @@ namespace LibraryManagement.Hubs
                 timestamp = DateTime.Now
             });
 
-            // Gửi thông báo đến notification bell của tất cả Admin/Librarian
-            await Clients.Group("Librarians").SendAsync("ReceiveNotification", new
-            {
-                message = $"Tin nhắn mới từ {userName}: {message}",
-                type = "Support",
-                timestamp = DateTime.Now
-            });
+            // NOTE: ReceiveNotification cho Support message được gửi qua
+            // NotificationService -> NotificationHub thay vì tại đây để tránh trùng lặp.
         }
 
         /// <summary>
@@ -82,19 +77,6 @@ namespace LibraryManagement.Hubs
             {
                 message = message,
                 librarianName = librarianName,
-                timestamp = DateTime.Now
-            });
-        }
-
-        /// <summary>
-        /// Gửi thông báo đến một user cụ thể
-        /// </summary>
-        public async Task SendNotificationToUser(string userId, string message, string type)
-        {
-            await Clients.User(userId).SendAsync("ReceiveNotification", new
-            {
-                message = message,
-                type = type,
                 timestamp = DateTime.Now
             });
         }

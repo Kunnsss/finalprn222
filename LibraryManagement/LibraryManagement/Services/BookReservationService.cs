@@ -176,49 +176,13 @@ namespace LibraryManagement.Services
         public async Task<bool> MarkAsCompletedAsync(int reservationId)
         {
             var reservation = await _context.BookReservations
-                .Include(r => r.Book)
                 .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
 
             if (reservation == null || reservation.Status != "Ready")
                 return false;
 
-            var book = reservation.Book;
-            if (book == null || !book.IsPhysical || book.AvailableQuantity <= 0)
-                return false;
-
-            // Khi admin xác nhận user đã đến lấy sách:
-            // - Tạo RentalTransaction với RentalDate là thời điểm Completed
-            // - DueDate mặc định = +7 ngày
-            // - Trừ 1 bản copy sách và set Status Rental = Renting
-            var rentalDate = DateTime.Now;
-            const int rentalDays = 7;
-
-            var transaction = new RentalTransaction
-            {
-                UserId = reservation.UserId,
-                BookId = reservation.BookId,
-                RentalDate = rentalDate,
-                DueDate = rentalDate.AddDays(rentalDays),
-                RentalPrice = book.RentalPrice,
-                TotalAmount = rentalDays * book.RentalPrice,
-                LateFee = 0,
-                Status = "Renting"
-            };
-
-            // Giảm số lượng sách khả dụng khi đã cho user thuê
-            book.AvailableQuantity -= 1;
-
             reservation.Status = "Completed";
-
-            _context.RentalTransactions.Add(transaction);
             await _context.SaveChangesAsync();
-
-            // Realtime update số lượng khả dụng (để UI Books/Details cập nhật ngay)
-            await _hubContext.Clients.All.SendAsync("BookAvailabilityUpdated", new
-            {
-                BookId = reservation.BookId,
-                AvailableQuantity = book.AvailableQuantity
-            });
 
             return true;
         }

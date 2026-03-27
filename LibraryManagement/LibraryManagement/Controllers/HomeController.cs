@@ -24,7 +24,7 @@ namespace LibraryManagement.Controllers
                 .Include(b => b.Category)
                 .Where(b => b.AvailableQuantity > 0 || !b.IsPhysical)
                 .OrderByDescending(b => b.CreatedDate)
-                .Take(8)
+                .Take(6)
                 .ToListAsync();
 
             return View(featuredBooks);

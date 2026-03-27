@@ -26,24 +26,11 @@ namespace LibraryManagement.Controllers
         #region User Actions
 
         // Xem danh sách đặt chỗ của user
-        public async Task<IActionResult> MyReservations(int page = 1, int pageSize = 8)
+        public async Task<IActionResult> MyReservations()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             var reservations = await _reservationService.GetUserReservationsAsync(userId);
-            var list = reservations.OrderByDescending(r => r.ReservationDate).ToList();
-
-            int total = list.Count;
-            int totalPages = (int)Math.Ceiling(total / (double)pageSize);
-            if (page < 1) page = 1;
-            if (page > totalPages && totalPages > 0) page = totalPages;
-
-            var paged = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-
-            ViewBag.Page = page;
-            ViewBag.PageSize = pageSize;
-            ViewBag.TotalItems = total;
-            ViewBag.TotalPages = totalPages;
-            return View(paged);
+            return View(reservations);
         }
 
         // Đặt chỗ sách
@@ -153,18 +140,7 @@ namespace LibraryManagement.Controllers
                     return Ok(new { message = "Đã đánh dấu sẵn sàng" });
                 }
 
-                var reservation = await _context.BookReservations
-                    .FirstOrDefaultAsync(r => r.ReservationId == id);
-
-                if (reservation == null)
-                {
-                    return NotFound(new { message = "Không tìm thấy đặt chỗ" });
-                }
-
-                return BadRequest(new
-                {
-                    message = $"Không thể đánh dấu sẵn sàng. ReservationId={id} hiện tại đang ở trạng thái '{reservation.Status}'."
-                });
+                return BadRequest(new { message = "Không thể cập nhật trạng thái" });
             }
             catch (Exception ex)
             {
@@ -186,20 +162,7 @@ namespace LibraryManagement.Controllers
                     return Ok(new { message = "Đã đánh dấu hoàn thành" });
                 }
 
-                var reservation = await _context.BookReservations
-                    .Include(r => r.Book)
-                    .FirstOrDefaultAsync(r => r.ReservationId == id);
-
-                if (reservation == null)
-                {
-                    return NotFound(new { message = "Không tìm thấy đặt chỗ" });
-                }
-
-                var availableQuantity = reservation.Book?.AvailableQuantity ?? 0;
-                return BadRequest(new
-                {
-                    message = $"Không thể đánh dấu hoàn thành. ReservationId={id} hiện tại '{reservation.Status}', AvailableQuantity của sách={availableQuantity}."
-                });
+                return BadRequest(new { message = "Không thể cập nhật trạng thái" });
             }
             catch (Exception ex)
             {

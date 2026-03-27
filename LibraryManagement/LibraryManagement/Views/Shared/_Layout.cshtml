@@ -560,70 +560,78 @@
     @if (User.Identity.IsAuthenticated)
     {
         <script>
-            // SignalR Connection
-            const connection = new signalR.HubConnectionBuilder()
+            // ========== LibraryHub: rental, events, system ==========
+            const libHub = new signalR.HubConnectionBuilder()
                 .withUrl("/libraryHub")
                 .build();
 
-            connection.on("ReceiveNotification", function (notification) {
-                updateNotificationCount(1);
-                showToast(notification.message, notification.type);
-            });
-
-            connection.on("BookNowAvailable", function (data) {
+            libHub.on("BookNowAvailable", function (data) {
                 updateNotificationCount(1);
                 showToast(data.message, "BookAvailable");
             });
 
-            connection.on("SystemMessage", function (data) {
+            libHub.on("SystemMessage", function (data) {
                 showSystemMessage(data.title, data.message, data.type);
             });
 
-            connection.on("NewEventCreated", function (data) {
+            libHub.on("NewEventCreated", function (data) {
                 showToast(data.message, "Info");
             });
 
-            connection.on("EventCancelled", function (data) {
+            libHub.on("EventCancelled", function (data) {
                 showToast(`Sự kiện "${data.eventName}" đã bị hủy. Lý do: ${data.reason}`, "Warning");
             });
 
-            connection.on("ForceLogout", function (data) {
-            const reason = data.reason || "Không có lý do cụ thể";
+            libHub.on("ForceLogout", function (data) {
+                const reason = data.reason || "Không có lý do cụ thể";
+                document.getElementById('forceLogoutReason').textContent = reason;
+                document.getElementById('forceLogoutOverlay').style.display = 'flex';
 
-            document.getElementById('forceLogoutReason').textContent = reason;
-            document.getElementById('forceLogoutOverlay').style.display = 'flex';
+                let seconds = 5;
+                const countdownEl = document.getElementById('forceLogoutCountdown');
 
-            let seconds = 5;
-            const countdownEl = document.getElementById('forceLogoutCountdown');
-
-            const timer = setInterval(function () {
-            seconds--;
-            countdownEl.textContent = seconds;
-            if (seconds <= 0) {
-            clearInterval(timer);
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/Account/Logout';
-            const token = document.querySelector('input[name="__RequestVerificationToken"]');
-            if (token) {
-            const hiddenToken = document.createElement('input');
-            hiddenToken.type = 'hidden';
-            hiddenToken.name = '__RequestVerificationToken';
-            hiddenToken.value = token.value;
-            form.appendChild(hiddenToken);
-            }
-            document.body.appendChild(form);
-            form.submit();
-            }
-            }, 1000);
+                const timer = setInterval(function () {
+                    seconds--;
+                    countdownEl.textContent = seconds;
+                    if (seconds <= 0) {
+                        clearInterval(timer);
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '/Account/Logout';
+                        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                        if (token) {
+                            const hiddenToken = document.createElement('input');
+                            hiddenToken.type = 'hidden';
+                            hiddenToken.name = '__RequestVerificationToken';
+                            hiddenToken.value = token.value;
+                            form.appendChild(hiddenToken);
+                        }
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                }, 1000);
             });
 
-            connection.start()
+            libHub.start()
+                .then(() => console.log('LibraryHub Connected'))
+                .catch(err => console.error('LibraryHub Error:', err.toString()));
+
+            // ========== NotificationHub: ReceiveNotification ==========
+            const notifHub = new signalR.HubConnectionBuilder()
+                .withUrl("/notificationHub")
+                .build();
+
+            notifHub.on("ReceiveNotification", function (notification) {
+                updateNotificationCount(1);
+                showToast(notification.message, notification.type);
+            });
+
+            notifHub.start()
                 .then(() => {
-                    console.log('SignalR Connected');
+                    console.log('NotificationHub Connected');
                     loadNotificationCount();
                 })
-                .catch(err => console.error('SignalR Error:', err.toString()));
+                .catch(err => console.error('NotificationHub Error:', err.toString()));
 
             function loadNotificationCount() {
                 fetch('/Notifications/GetUnreadCount')

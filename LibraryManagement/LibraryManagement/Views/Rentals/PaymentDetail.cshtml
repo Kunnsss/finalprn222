@@ -4,14 +4,12 @@
     var paymentAmount = (decimal)ViewBag.PaymentAmount;
     string pageTitle = paymentType switch {
         "Compensation" => "Thanh toán đền bù mất sách",
-        "LateFee"       => "Thanh toán phí phạt trễ hạn",
-        "Overdue"       => "Thanh toán phí trễ hạn",
-        _               => "Thanh toán thuê sách"
+        "LateFee"      => "Thanh toán phí phạt trễ hạn",
+        _              => "Thanh toán thuê sách"
     };
     string badgeClass = paymentType switch {
         "Compensation" => "bg-danger",
         "LateFee"      => "bg-warning text-dark",
-        "Overdue"      => "bg-danger",
         _              => "bg-primary"
     };
     ViewData["Title"] = pageTitle;
@@ -90,13 +88,6 @@
                         Bạn đang thanh toán <strong>phí phạt trễ hạn</strong> cho sách đã trả.
                     </div>
                 }
-                else if (paymentType == "Overdue")
-                {
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Bạn đang thanh toán <strong>phí trễ hạn</strong> cho sách quá hạn. Sau khi thanh toán, bạn vẫn có thể tiếp tục thuê hoặc trả sách.
-                    </div>
-                }
                 else if (paymentType == "Compensation")
                 {
                     <div class="alert alert-danger">
@@ -117,16 +108,6 @@
                     @if (paymentType == "LateFee")
                     {
                         <form method="post" asp-action="PayLateFeeOnline">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="transactionId" value="@Model.TransactionId" />
-                            <button type="submit" class="btn btn-warning w-100 btn-lg">
-                                <i class="fas fa-credit-card"></i> Thanh toán bằng PayOS
-                            </button>
-                        </form>
-                    }
-                    else if (paymentType == "Overdue")
-                    {
-                        <form method="post" asp-action="PayOverdueOnline">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="transactionId" value="@Model.TransactionId" />
                             <button type="submit" class="btn btn-warning w-100 btn-lg">
