@@ -337,586 +337,879 @@
                         <td>Tổng doanh thu:</td>
                         <td><strong>@Model.TotalRevenue.ToString("N0") VND</strong></td>
                     </tr>
+                    <tr>
+                        <td colspan="2" class="text-end pt-2">
+                            <button class="btn btn-success btn-sm" onclick="exportSummary()">
+                                <i class="fas fa-file-excel me-1"></i> Xuất tổng quan Excel
+                            </button>
+                        </td>
+                    </tr>
                 </table>
             </div>
         </div>
     </div>
 </div>
+<!-- ===== EXPORT TO EXCEL PANEL ===== -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header text-white d-flex justify-content-between align-items-center"
+         style="background-color: #1e8449;">
+        <h5 class="mb-0">
+            <i class="fas fa-file-excel me-2"></i>Xuất báo cáo Excel
+        </h5>
+        <button class="btn btn-sm btn-outline-light" type="button"
+                data-bs-toggle="collapse" data-bs-target="#exportPanel" aria-expanded="true">
+            <i class="fas fa-chevron-up" id="exportChevron"></i>
+        </button>
+    </div>
 
+    <div class="collapse show" id="exportPanel">
+        <div class="card-body pt-3 pb-3">
+
+            <!-- Tab buttons -->
+            <div class="btn-group mb-3" role="group">
+                <button type="button" class="btn btn-success active" id="tabBtnRentals"
+                        onclick="switchExportTab('rentals')">
+                    <i class="fas fa-book-reader me-1"></i>Mượn trả
+                </button>
+                <button type="button" class="btn btn-outline-success" id="tabBtnEvents"
+                        onclick="switchExportTab('events')">
+                    <i class="fas fa-calendar-alt me-1"></i>Sự kiện
+                </button>
+            </div>
+
+            <!-- TAB: Mượn trả -->
+            <div id="exportTabRentals">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="fas fa-search"></i> Tìm kiếm
+                        </label>
+                        <input type="text" class="form-control form-control-sm"
+                               id="exportRentalSearch"
+                               placeholder="Tên người mượn, tên sách, ISBN..." />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="fas fa-filter"></i> Trạng thái
+                        </label>
+                        <select class="form-select form-select-sm" id="exportRentalStatus">
+                            <option value="">Tất cả</option>
+                            <option value="Renting">Đang mượn</option>
+                            <option value="Returned">Đã trả</option>
+                            <option value="Overdue">Quá hạn</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="fas fa-calendar"></i> Từ ngày
+                        </label>
+                        <input type="date" class="form-control form-control-sm" id="exportRentalFrom" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="fas fa-calendar"></i> Đến ngày
+                        </label>
+                        <input type="date" class="form-control form-control-sm" id="exportRentalTo" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small fw-semibold text-muted mb-1">Sắp xếp</label>
+                        <select class="form-select form-select-sm" id="exportRentalSortBy">
+                            <option value="rentaldate">Ngày mượn</option>
+                            <option value="username">Người mượn</option>
+                            <option value="book">Tên sách</option>
+                            <option value="duedate">Hạn trả</option>
+                            <option value="status">Trạng thái</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small fw-semibold text-muted mb-1">Thứ tự</label>
+                        <select class="form-select form-select-sm" id="exportRentalSortOrder">
+                            <option value="desc">↓ Mới nhất</option>
+                            <option value="asc">↑ Cũ nhất</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small d-block mb-1">&nbsp;</label>
+                        <button class="btn btn-success btn-sm w-100"
+                                id="btnExportRentals" onclick="exportToExcel('rentals')">
+                            <i class="fas fa-download"></i> Xuất
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live preview badge -->
+                <div class="mt-2" id="rentalPreviewBadge" style="display:none;">
+                    <span class="badge bg-secondary">
+                        <i class="fas fa-table me-1"></i>
+                        <span id="rentalPreviewText">Đang đếm...</span>
+                    </span>
+                    <small class="text-muted ms-2">bản ghi sẽ được xuất</small>
+                </div>
+            </div>
+
+            <!-- TAB: Sự kiện -->
+            <div id="exportTabEvents" style="display:none;">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="fas fa-search"></i> Tìm kiếm
+                        </label>
+                        <input type="text" class="form-control form-control-sm"
+                               id="exportEventSearch"
+                               placeholder="Tên sự kiện, địa điểm, mô tả..." />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="fas fa-filter"></i> Trạng thái
+                        </label>
+                        <select class="form-select form-select-sm" id="exportEventStatus">
+                            <option value="">Tất cả</option>
+                            <option value="upcoming">Sắp diễn ra</option>
+                            <option value="past">Đã kết thúc</option>
+                            <option value="cancelled">Đã hủy</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold text-muted mb-1">Sắp xếp</label>
+                        <select class="form-select form-select-sm" id="exportEventSortBy">
+                            <option value="eventdate">Ngày tổ chức</option>
+                            <option value="name">Tên sự kiện</option>
+                            <option value="participants">Số người đăng ký</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold text-muted mb-1">Thứ tự</label>
+                        <select class="form-select form-select-sm" id="exportEventSortOrder">
+                            <option value="desc">↓ Mới nhất</option>
+                            <option value="asc">↑ Cũ nhất</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small d-block mb-1">&nbsp;</label>
+                        <button class="btn btn-success btn-sm w-100"
+                                id="btnExportEvents" onclick="exportToExcel('events')">
+                            <i class="fas fa-download"></i> Xuất Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- ===== END EXPORT PANEL ===== -->
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Thêm Toastr JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
-                console.log('=== DASHBOARD DEBUG ===');
+        console.log('=== DASHBOARD DEBUG ===');
 
-                // Cấu hình Toastr
-                toastr.options = {
-                    "closeButton": true,
-                    "debug": false,
-                    "newestOnTop": true,
-                    "progressBar": true,
-                    "positionClass": "toast-top-right",
-                    "preventDuplicates": false,
-                    "onclick": null,
-                    "showDuration": "300",
-                    "hideDuration": "1000",
-                    "timeOut": "5000",
-                    "extendedTimeOut": "1000",
-                    "showEasing": "swing",
-                    "hideEasing": "linear",
-                    "showMethod": "fadeIn",
-                    "hideMethod": "fadeOut"
-                };
+        // Cấu hình Toastr
+        toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+        };
 
-                // Helper function để show toast
-                function showToast(message, type = 'success', title = '') {
-                    switch(type) {
-                        case 'success':
-                            toastr.success(message, title || 'Thành công');
-                            break;
-                        case 'error':
-                            toastr.error(message, title || 'Lỗi');
-                            break;
-                        case 'warning':
-                            toastr.warning(message, title || 'Cảnh báo');
-                            break;
-                        case 'info':
-                            toastr.info(message, title || 'Thông tin');
-                            break;
-                        default:
-                            toastr.info(message, title);
-                    }
-                }
+        // Helper function để show toast
+        function showToast(message, type = 'success', title = '') {
+        switch(type) {
+        case 'success':
+        toastr.success(message, title || 'Thành công');
+        break;
+        case 'error':
+        toastr.error(message, title || 'Lỗi');
+        break;
+        case 'warning':
+        toastr.warning(message, title || 'Cảnh báo');
+        break;
+        case 'info':
+        toastr.info(message, title || 'Thông tin');
+        break;
+        default:
+        toastr.info(message, title);
+        }
+        }
 
-                // Kiểm tra SignalR connection từ _Layout
-                if (typeof connection === 'undefined') {
-                    console.error('SignalR connection not found from _Layout.cshtml');
-                } else {
-                    console.log('SignalR connection found:', connection);
-                }
+        // Kiểm tra SignalR connection từ _Layout
+        if (typeof connection === 'undefined') {
+        console.error('SignalR connection not found from _Layout.cshtml');
+        } else {
+        console.log('SignalR connection found:', connection);
+        }
 
-                // Lắng nghe sự kiện từ SignalR Hub
-                if (typeof connection !== 'undefined') {
-                    connection.on("UpdateOnlineCount", function(count) {
-                        console.log('UpdateOnlineCount received:', count);
-                        document.getElementById("onlineUsersCount").textContent = count;
-                        loadOnlineUsers();
-                    });
+        // Lắng nghe sự kiện từ SignalR Hub
+        if (typeof connection !== 'undefined') {
+        connection.on("UpdateOnlineCount", function(count) {
+        console.log('UpdateOnlineCount received:', count);
+        document.getElementById("onlineUsersCount").textContent = count;
+        loadOnlineUsers();
+        });
 
-                    connection.on("StatsUpdated", function(stats) {
-                        console.log('StatsUpdated received:', stats);
-                        document.getElementById("activeRentalsCount").textContent = stats.activeRentals;
-                        document.getElementById("todayRentalsCount").textContent = stats.todayRentals;
-                        updateChart(stats);
-                    });
-                }
+        connection.on("StatsUpdated", function(stats) {
+        console.log('StatsUpdated received:', stats);
+        document.getElementById("activeRentalsCount").textContent = stats.activeRentals;
+        document.getElementById("todayRentalsCount").textContent = stats.todayRentals;
+        updateChart(stats);
+        });
+        }
 
-                // Load danh sách user online
-                async function loadOnlineUsers() {
-                    try {
-                        console.log('Loading online users...');
-                        const response = await fetch('/Dashboard/GetOnlineUsers');
-                        const data = await response.json();
-                        console.log('Online users data:', data);
+        // Load danh sách user online
+        async function loadOnlineUsers() {
+        try {
+        console.log('Loading online users...');
+        const response = await fetch('/Dashboard/GetOnlineUsers');
+        const data = await response.json();
+        console.log('Online users data:', data);
 
-                        const users = data.users || [];
+        const users = data.users || [];
 
-                        if (users.length === 0) {
-                            document.getElementById('onlineUsersList').innerHTML =
-                                '<p class="text-muted">Không có user online</p>';
-                            return;
-                        }
+        if (users.length === 0) {
+        document.getElementById('onlineUsersList').innerHTML =
+        '<p class="text-muted">Không có user online</p>';
+        return;
+        }
 
-                        const html = users.map(u => `
-                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
-                                <div>
-                                    <strong>${u.userName}</strong>
-                                    <br><small class="text-muted">Kết nối: ${new Date(u.connectedAt).toLocaleTimeString('vi-VN')}</small>
-                                </div>
-                                <button class="btn btn-sm btn-danger" onclick="forceLogout('${u.userId}', '${u.userName}')">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                </button>
-                            </div>
-                        `).join('');
+        const html = users.map(u => `
+        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+        <div>
+        <strong>${u.userName}</strong>
+        <br><small class="text-muted">Kết nối: ${new Date(u.connectedAt).toLocaleTimeString('vi-VN')}</small>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="forceLogout('${u.userId}', '${u.userName}')">
+        <i class="fas fa-sign-out-alt"></i>
+        </button>
+        </div>
+        `).join('');
 
-                        document.getElementById('onlineUsersList').innerHTML = html;
-                    } catch (err) {
-                        console.error('Lỗi load online users:', err);
-                        document.getElementById('onlineUsersList').innerHTML =
-                            '<p class="text-danger">Lỗi tải danh sách user</p>';
-                    }
-                }
+        document.getElementById('onlineUsersList').innerHTML = html;
+        } catch (err) {
+        console.error('Lỗi load online users:', err);
+        document.getElementById('onlineUsersList').innerHTML =
+        '<p class="text-danger">Lỗi tải danh sách user</p>';
+        }
+        }
 
-                // Force logout user
-                async function forceLogout(userId, userName) {
-                    if (!confirm(`Bạn có chắc muốn đăng xuất user "${userName}"?`)) return;
+        // Force logout user
+        async function forceLogout(userId, userName) {
+        if (!confirm(`Bạn có chắc muốn đăng xuất user "${userName}"?`)) return;
 
-                    const reason = prompt('Lý do:');
-                    if (!reason) return;
+        const reason = prompt('Lý do:');
+        if (!reason) return;
 
-                    try {
-                        if (typeof connection !== 'undefined') {
-                            await connection.invoke("ForceLogoutUser", userId, reason);
-                            showToast(`Đã gửi lệnh logout đến user ${userName}`, 'success');
-                        } else {
-                            showToast('Không có kết nối SignalR', 'error');
-                        }
-                    } catch (err) {
-                        console.error('Error force logout:', err);
-                        showToast('Lỗi: ' + err.message, 'error');
-                    }
-                }
+        try {
+        if (typeof connection !== 'undefined') {
+        await connection.invoke("ForceLogoutUser", userId, reason);
+        showToast(`Đã gửi lệnh logout đến user ${userName}`, 'success');
+        } else {
+        showToast('Không có kết nối SignalR', 'error');
+        }
+        } catch (err) {
+        console.error('Error force logout:', err);
+        showToast('Lỗi: ' + err.message, 'error');
+        }
+        }
 
-                // Broadcast message
-                async function broadcastMessage() {
-                    const type = document.getElementById('messageType').value;
-                    const title = document.getElementById('messageTitle').value;
-                    const content = document.getElementById('messageContent').value;
+        // Broadcast message
+        async function broadcastMessage() {
+        const type = document.getElementById('messageType').value;
+        const title = document.getElementById('messageTitle').value;
+        const content = document.getElementById('messageContent').value;
 
-                    console.log('Broadcasting message:', { type, title, content });
+        console.log('Broadcasting message:', { type, title, content });
 
-                    if (!title || !content) {
-                        showToast('Vui lòng nhập đầy đủ thông tin!', 'warning');
-                        return;
-                    }
+        if (!title || !content) {
+        showToast('Vui lòng nhập đầy đủ thông tin!', 'warning');
+        return;
+        }
 
-                    try {
-                        const response = await fetch('/Dashboard/BroadcastMessage', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                title: title,
-                                message: content,
-                                type: type
-                            })
-                        });
+        try {
+        const response = await fetch('/Dashboard/BroadcastMessage', {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+        title: title,
+        message: content,
+        type: type
+        })
+        });
 
-                        const result = await response.json();
-                        console.log('Broadcast result:', result);
+        const result = await response.json();
+        console.log('Broadcast result:', result);
 
-                        if (result.success) {
-                            showToast('Đã gửi thông báo đến tất cả user online!', 'success');
-                            document.getElementById('messageTitle').value = '';
-                            document.getElementById('messageContent').value = '';
-                        } else {
-                            showToast(result.message, 'error');
-                        }
-                    } catch (err) {
-                        console.error('Error broadcasting:', err);
-                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
-                    }
-                }
+        if (result.success) {
+        showToast('Đã gửi thông báo đến tất cả user online!', 'success');
+        document.getElementById('messageTitle').value = '';
+        document.getElementById('messageContent').value = '';
+        } else {
+        showToast(result.message, 'error');
+        }
+        } catch (err) {
+        console.error('Error broadcasting:', err);
+        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+        }
+        }
 
-                // Realtime chart
-                const ctx = document.getElementById('rentalChart').getContext('2d');
-                const rentalChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: [],
-                        datasets: [{
-                            label: 'Số lượng mượn',
-                            data: [],
-                            borderColor: 'rgb(75, 192, 192)',
-                            tension: 0.1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
+        // Realtime chart
+        const ctx = document.getElementById('rentalChart').getContext('2d');
+        const rentalChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+        labels: [],
+        datasets: [{
+        label: 'Số lượng mượn',
+        data: [],
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+        y: {
+        beginAtZero: true
+        }
+        }
+        }
+        });
 
-                function updateChart(stats) {
-                    const now = new Date().toLocaleTimeString('vi-VN');
+        function updateChart(stats) {
+        const now = new Date().toLocaleTimeString('vi-VN');
 
-                    rentalChart.data.labels.push(now);
-                    rentalChart.data.datasets[0].data.push(stats.todayRentals);
+        rentalChart.data.labels.push(now);
+        rentalChart.data.datasets[0].data.push(stats.todayRentals);
 
-                    if (rentalChart.data.labels.length > 20) {
-                        rentalChart.data.labels.shift();
-                        rentalChart.data.datasets[0].data.shift();
-                    }
+        if (rentalChart.data.labels.length > 20) {
+        rentalChart.data.labels.shift();
+        rentalChart.data.datasets[0].data.shift();
+        }
 
-                    rentalChart.update();
-                }
+        rentalChart.update();
+        }
 
-                // ========== SYSTEM ANNOUNCEMENTS ==========
+        // ========== SYSTEM ANNOUNCEMENTS ==========
 
-                async function loadAnnouncements() {
-                    try {
-                        const response = await fetch('/Dashboard/GetAnnouncements');
-                        const data = await response.json();
+        async function loadAnnouncements() {
+        try {
+        const response = await fetch('/Dashboard/GetAnnouncements');
+        const data = await response.json();
 
-                        if (!data.success || !data.announcements || data.announcements.length === 0) {
-                            document.getElementById('announcementsList').innerHTML =
-                                '<p class="text-muted">Không có thông báo nào đang hoạt động</p>';
-                            return;
-                        }
+        if (!data.success || !data.announcements || data.announcements.length === 0) {
+        document.getElementById('announcementsList').innerHTML =
+        '<p class="text-muted">Không có thông báo nào đang hoạt động</p>';
+        return;
+        }
 
-                        const html = data.announcements.map(a => {
-                            const typeClass = a.type === 'Alert' ? 'danger' : a.type === 'Warning' ? 'warning' : 'info';
-                            const typeIcon = a.type === 'Alert' ? 'fa-exclamation-circle' : a.type === 'Warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-                            const expiry = a.expiryDate ? new Date(a.expiryDate).toLocaleString('vi-VN') : 'Không giới hạn';
+        const html = data.announcements.map(a => {
+        const typeClass = a.type === 'Alert' ? 'danger' : a.type === 'Warning' ? 'warning' : 'info';
+        const typeIcon = a.type === 'Alert' ? 'fa-exclamation-circle' : a.type === 'Warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+        const expiry = a.expiryDate ? new Date(a.expiryDate).toLocaleString('vi-VN') : 'Không giới hạn';
 
-                            return `
-                                <div class="card mb-2 border-${typeClass}">
-                                    <div class="card-body py-2">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-1">
-                                                    <i class="fas ${typeIcon} text-${typeClass}"></i> ${a.title}
-                                                    <span class="badge bg-${typeClass}">${a.type}</span>
-                                                </h6>
-                                                <p class="mb-1 small">${a.content}</p>
-                                                <small class="text-muted">
-                                                    <i class="fas fa-user"></i> ${a.createdBy} |
-                                                    <i class="fas fa-clock"></i> ${new Date(a.createdDate).toLocaleString('vi-VN')} |
-                                                    <i class="fas fa-calendar-times"></i> Hết hạn: ${expiry}
-                                                </small>
-                                            </div>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAnnouncement(${a.announcementId})">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('');
+        return `
+        <div class="card mb-2 border-${typeClass}">
+        <div class="card-body py-2">
+        <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+        <h6 class="mb-1">
+        <i class="fas ${typeIcon} text-${typeClass}"></i> ${a.title}
+        <span class="badge bg-${typeClass}">${a.type}</span>
+        </h6>
+        <p class="mb-1 small">${a.content}</p>
+        <small class="text-muted">
+        <i class="fas fa-user"></i> ${a.createdBy} |
+        <i class="fas fa-clock"></i> ${new Date(a.createdDate).toLocaleString('vi-VN')} |
+        <i class="fas fa-calendar-times"></i> Hết hạn: ${expiry}
+        </small>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteAnnouncement(${a.announcementId})">
+        <i class="fas fa-trash"></i>
+        </button>
+        </div>
+        </div>
+        </div>
+        `;
+        }).join('');
 
-                        document.getElementById('announcementsList').innerHTML = html;
-                    } catch (err) {
-                        console.error('Error loading announcements:', err);
-                        document.getElementById('announcementsList').innerHTML =
-                            '<p class="text-danger">Lỗi tải danh sách thông báo</p>';
-                    }
-                }
+        document.getElementById('announcementsList').innerHTML = html;
+        } catch (err) {
+        console.error('Error loading announcements:', err);
+        document.getElementById('announcementsList').innerHTML =
+        '<p class="text-danger">Lỗi tải danh sách thông báo</p>';
+        }
+        }
 
-                async function createAnnouncement() {
-                    const type = document.getElementById('announcementType').value;
-                    const title = document.getElementById('announcementTitle').value;
-                    const content = document.getElementById('announcementContent').value;
-                    const expiry = document.getElementById('announcementExpiry').value;
+        async function createAnnouncement() {
+        const type = document.getElementById('announcementType').value;
+        const title = document.getElementById('announcementTitle').value;
+        const content = document.getElementById('announcementContent').value;
+        const expiry = document.getElementById('announcementExpiry').value;
 
-                    if (!title || !content) {
-                        showToast('Vui lòng nhập tiêu đề và nội dung!', 'warning');
-                        return;
-                    }
+        if (!title || !content) {
+        showToast('Vui lòng nhập tiêu đề và nội dung!', 'warning');
+        return;
+        }
 
-                    try {
-                        const response = await fetch('/Dashboard/CreateAnnouncement', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                title: title,
-                                content: content,
-                                type: type,
-                                expiryDate: expiry || null
-                            })
-                        });
+        try {
+        const response = await fetch('/Dashboard/CreateAnnouncement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+        title: title,
+        content: content,
+        type: type,
+        expiryDate: expiry || null
+        })
+        });
 
-                        const result = await response.json();
+        const result = await response.json();
 
-                        if (result.success) {
-                            showToast('Đã tạo và gửi thông báo thành công!', 'success');
-                            document.getElementById('announcementForm').reset();
-                            loadAnnouncements();
-                        } else {
-                            showToast(result.message, 'error');
-                        }
-                    } catch (err) {
-                        console.error('Error creating announcement:', err);
-                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
-                    }
-                }
+        if (result.success) {
+        showToast('Đã tạo và gửi thông báo thành công!', 'success');
+        document.getElementById('announcementForm').reset();
+        loadAnnouncements();
+        } else {
+        showToast(result.message, 'error');
+        }
+        } catch (err) {
+        console.error('Error creating announcement:', err);
+        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+        }
+        }
 
-                async function deleteAnnouncement(announcementId) {
-                    if (!confirm('Bạn có chắc muốn xóa thông báo này?')) return;
+        async function deleteAnnouncement(announcementId) {
+        if (!confirm('Bạn có chắc muốn xóa thông báo này?')) return;
 
-                    try {
-                        const response = await fetch('/Dashboard/DeleteAnnouncement', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ announcementId: announcementId })
-                        });
+        try {
+        const response = await fetch('/Dashboard/DeleteAnnouncement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ announcementId: announcementId })
+        });
 
-                        const result = await response.json();
+        const result = await response.json();
 
-                        if (result.success) {
-                            showToast('Đã xóa thông báo!', 'success');
-                            loadAnnouncements();
-                        } else {
-                            showToast(result.message, 'error');
-                        }
-                    } catch (err) {
-                        console.error('Error deleting announcement:', err);
-                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
-                    }
-                }
+        if (result.success) {
+        showToast('Đã xóa thông báo!', 'success');
+        loadAnnouncements();
+        } else {
+        showToast(result.message, 'error');
+        }
+        } catch (err) {
+        console.error('Error deleting announcement:', err);
+        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+        }
+        }
 
-                // ========== EVENT MANAGEMENT ==========
+        // ========== EVENT MANAGEMENT ==========
 
-                async function loadUpcomingEvents() {
-                    try {
-                        const response = await fetch('/Dashboard/GetUpcomingEvents');
-                        const data = await response.json();
+        async function loadUpcomingEvents() {
+        try {
+        const response = await fetch('/Dashboard/GetUpcomingEvents');
+        const data = await response.json();
 
-                        if (!data.success || !data.events || data.events.length === 0) {
-                            document.getElementById('upcomingEventsList').innerHTML =
-                                '<p class="text-muted">Không có sự kiện sắp diễn ra</p>';
-                            return;
-                        }
+        if (!data.success || !data.events || data.events.length === 0) {
+        document.getElementById('upcomingEventsList').innerHTML =
+        '<p class="text-muted">Không có sự kiện sắp diễn ra</p>';
+        return;
+        }
 
-                        const html = data.events.map(e => {
-                            const eventDate = new Date(e.eventDate);
-                            const isNearby = (eventDate - new Date()) < 86400000 * 3;
-                            const availableSlots = (e.maxParticipants || 0) - e.currentParticipants;
-                            const isFull = availableSlots <= 0;
+        const html = data.events.map(e => {
+        const eventDate = new Date(e.eventDate);
+        const isNearby = (eventDate - new Date()) < 86400000 * 3;
+        const availableSlots = (e.maxParticipants || 0) - e.currentParticipants;
+        const isFull = availableSlots <= 0;
 
-                            return `
-                                <div class="card mb-3 ${isNearby ? 'border-warning' : ''}">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-1">
-                                                    <i class="fas fa-calendar-day"></i> ${e.eventName}
-                                                    ${isNearby ? '<span class="badge bg-warning text-dark ms-2">Sắp diễn ra</span>' : ''}
-                                                    ${isFull ? '<span class="badge bg-danger ms-2">Đã đầy</span>' : ''}
-                                                </h6>
-                                                <p class="mb-1 text-muted small">${e.description || 'Không có mô tả'}</p>
-                                                <div class="small">
-                                                    <i class="fas fa-clock"></i> ${eventDate.toLocaleString('vi-VN')}
-                                                    <br>
-                                                    <i class="fas fa-map-marker-alt"></i> ${e.location || 'Chưa xác định'}
-                                                    <br>
-                                                    <i class="fas fa-users"></i> ${e.currentParticipants}/${e.maxParticipants || '∞'} người
-                                                    ${!isFull ? `<span class="text-success">(còn ${availableSlots} chỗ)</span>` : ''}
-                                                </div>
-                                            </div>
-                                            <div class="btn-group-vertical btn-group-sm">
-                                                <button class="btn btn-sm btn-outline-info" onclick="viewEventRegistrations(${e.eventId})" title="Xem đăng ký">
-                                                    <i class="fas fa-list"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="cancelEvent(${e.eventId}, '${e.eventName}')" title="Hủy sự kiện">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('');
+        return `
+        <div class="card mb-3 ${isNearby ? 'border-warning' : ''}">
+        <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+        <h6 class="mb-1">
+        <i class="fas fa-calendar-day"></i> ${e.eventName}
+        ${isNearby ? '<span class="badge bg-warning text-dark ms-2">Sắp diễn ra</span>' : ''}
+        ${isFull ? '<span class="badge bg-danger ms-2">Đã đầy</span>' : ''}
+        </h6>
+        <p class="mb-1 text-muted small">${e.description || 'Không có mô tả'}</p>
+        <div class="small">
+        <i class="fas fa-clock"></i> ${eventDate.toLocaleString('vi-VN')}
+        <br>
+        <i class="fas fa-map-marker-alt"></i> ${e.location || 'Chưa xác định'}
+        <br>
+        <i class="fas fa-users"></i> ${e.currentParticipants}/${e.maxParticipants || '∞'} người
+        ${!isFull ? `<span class="text-success">(còn ${availableSlots} chỗ)</span>` : ''}
+        </div>
+        </div>
+        <div class="btn-group-vertical btn-group-sm">
+        <button class="btn btn-sm btn-outline-info" onclick="viewEventRegistrations(${e.eventId})" title="Xem đăng ký">
+        <i class="fas fa-list"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="cancelEvent(${e.eventId}, '${e.eventName}')" title="Hủy sự kiện">
+        <i class="fas fa-times"></i>
+        </button>
+        </div>
+        </div>
+        </div>
+        </div>
+        `;
+        }).join('');
 
-                        document.getElementById('upcomingEventsList').innerHTML = html;
-                    } catch (err) {
-                        console.error('Error loading upcoming events:', err);
-                        document.getElementById('upcomingEventsList').innerHTML =
-                            '<p class="text-danger">Lỗi tải danh sách sự kiện</p>';
-                    }
-                }
+        document.getElementById('upcomingEventsList').innerHTML = html;
+        } catch (err) {
+        console.error('Error loading upcoming events:', err);
+        document.getElementById('upcomingEventsList').innerHTML =
+        '<p class="text-danger">Lỗi tải danh sách sự kiện</p>';
+        }
+        }
 
-                async function createQuickEvent() {
-                    const eventName = document.getElementById('eventName').value;
-                    const eventDate = document.getElementById('eventDate').value;
-                    const eventLocation = document.getElementById('eventLocation').value;
-                    const eventMaxParticipants = document.getElementById('eventMaxParticipants').value;
-                    const eventDescription = document.getElementById('eventDescription').value;
+        async function createQuickEvent() {
+        const eventName = document.getElementById('eventName').value;
+        const eventDate = document.getElementById('eventDate').value;
+        const eventLocation = document.getElementById('eventLocation').value;
+        const eventMaxParticipants = document.getElementById('eventMaxParticipants').value;
+        const eventDescription = document.getElementById('eventDescription').value;
 
-                    if (!eventName || !eventDate) {
-                        showToast('Vui lòng nhập tên sự kiện và thời gian!', 'warning');
-                        return;
-                    }
+        if (!eventName || !eventDate) {
+        showToast('Vui lòng nhập tên sự kiện và thời gian!', 'warning');
+        return;
+        }
 
-                    try {
-                        const response = await fetch('/Dashboard/CreateQuickEvent', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                eventName: eventName,
-                                eventDate: eventDate,
-                                location: eventLocation,
-                                maxParticipants: parseInt(eventMaxParticipants) || 50,
-                                description: eventDescription
-                            })
-                        });
+        try {
+        const response = await fetch('/Dashboard/CreateQuickEvent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+        eventName: eventName,
+        eventDate: eventDate,
+        location: eventLocation,
+        maxParticipants: parseInt(eventMaxParticipants) || 50,
+        description: eventDescription
+        })
+        });
 
-                        const result = await response.json();
+        const result = await response.json();
 
-                        if (result.success) {
-                            showToast('Đã tạo sự kiện thành công!', 'success');
-                            document.getElementById('quickEventForm').reset();
-                            loadUpcomingEvents();
-                            loadEventStats();
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            showToast(result.message, 'error');
-                        }
-                    } catch (err) {
-                        console.error('Error creating event:', err);
-                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
-                    }
-                }
+        if (result.success) {
+        showToast('Đã tạo sự kiện thành công!', 'success');
+        document.getElementById('quickEventForm').reset();
+        loadUpcomingEvents();
+        loadEventStats();
+        setTimeout(() => location.reload(), 1500);
+        } else {
+        showToast(result.message, 'error');
+        }
+        } catch (err) {
+        console.error('Error creating event:', err);
+        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+        }
+        }
 
-                async function cancelEvent(eventId, eventName) {
-                    if (!confirm(`Bạn có chắc muốn hủy sự kiện "${eventName}"?`)) return;
+        async function cancelEvent(eventId, eventName) {
+        if (!confirm(`Bạn có chắc muốn hủy sự kiện "${eventName}"?`)) return;
 
-                    const reason = prompt('Lý do hủy:');
-                    if (!reason) return;
+        const reason = prompt('Lý do hủy:');
+        if (!reason) return;
 
-                    try {
-                        const response = await fetch('/Dashboard/CancelEvent', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ eventId: eventId, reason: reason })
-                        });
+        try {
+        const response = await fetch('/Dashboard/CancelEvent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: eventId, reason: reason })
+        });
 
-                        const result = await response.json();
+        const result = await response.json();
 
-                        if (result.success) {
-                            showToast('Đã hủy sự kiện!', 'success');
-                            loadUpcomingEvents();
-                            loadEventStats();
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            showToast(result.message, 'error');
-                        }
-                    } catch (err) {
-                        console.error('Error canceling event:', err);
-                        showToast('Có lỗi xảy ra: ' + err.message, 'error');
-                    }
-                }
+        if (result.success) {
+        showToast('Đã hủy sự kiện!', 'success');
+        loadUpcomingEvents();
+        loadEventStats();
+        setTimeout(() => location.reload(), 1500);
+        } else {
+        showToast(result.message, 'error');
+        }
+        } catch (err) {
+        console.error('Error canceling event:', err);
+        showToast('Có lỗi xảy ra: ' + err.message, 'error');
+        }
+        }
 
-                async function viewEventRegistrations(eventId) {
-                    try {
-                        const response = await fetch(`/Dashboard/GetEventRegistrations?eventId=${eventId}`);
-                        const data = await response.json();
+        async function viewEventRegistrations(eventId) {
+        try {
+        const response = await fetch(`/Dashboard/GetEventRegistrations?eventId=${eventId}`);
+        const data = await response.json();
 
-                        if (!data.success || !data.registrations || data.registrations.length === 0) {
-                            showToast('Chưa có người đăng ký', 'info');
-                            return;
-                        }
+        if (!data.success || !data.registrations || data.registrations.length === 0) {
+        showToast('Chưa có người đăng ký', 'info');
+        return;
+        }
 
-                        const html = data.registrations.map(r => `
+        const html = data.registrations.map(r => `
         - ${r.userName} (${r.email})
-          Trạng thái: ${r.status}
-          Đăng ký lúc: ${new Date(r.registrationDate).toLocaleString('vi-VN')}
-                        `).join('\n');
+        Trạng thái: ${r.status}
+        Đăng ký lúc: ${new Date(r.registrationDate).toLocaleString('vi-VN')}
+        `).join('\n');
 
-                        alert(`Danh sách đăng ký (${data.registrations.length} người):\n\n${html}`);
-                    } catch (err) {
-                        console.error('Error loading registrations:', err);
-                        showToast('Lỗi tải danh sách đăng ký', 'error');
-                    }
-                }
+        alert(`Danh sách đăng ký (${data.registrations.length} người):\n\n${html}`);
+        } catch (err) {
+        console.error('Error loading registrations:', err);
+        showToast('Lỗi tải danh sách đăng ký', 'error');
+        }
+        }
 
-                let eventChart = null;
-                async function loadEventStats() {
-                    try {
-                        const response = await fetch('/Dashboard/GetEventStats');
-                        const data = await response.json();
+        let eventChart = null;
+        async function loadEventStats() {
+        try {
+        const response = await fetch('/Dashboard/GetEventStats');
+        const data = await response.json();
 
-                        if (!data.success) return;
+        if (!data.success) return;
 
-                        const ctx = document.getElementById('eventChart');
-                        if (!ctx) return;
+        const ctx = document.getElementById('eventChart');
+        if (!ctx) return;
 
-                        if (eventChart) {
-                            eventChart.destroy();
-                        }
+        if (eventChart) {
+        eventChart.destroy();
+        }
 
-                        const ctxEvent = ctx.getContext('2d');
-                        eventChart = new Chart(ctxEvent, {
-                            type: 'bar',
-                            data: {
-                                labels: data.topEvents.map(e => e.eventName),
-                                datasets: [{
-                                    label: 'Số người đăng ký',
-                                    data: data.topEvents.map(e => e.participants),
-                                    backgroundColor: 'rgba(23, 162, 184, 0.7)',
-                                    borderColor: 'rgba(23, 162, 184, 1)',
-                                    borderWidth: 1
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    y: {
-                                        beginAtZero: true
-                                    }
-                                }
-                            }
-                        });
-                    } catch (err) {
-                        console.error('Error loading event stats:', err);
-                    }
-                }
+        const ctxEvent = ctx.getContext('2d');
+        eventChart = new Chart(ctxEvent, {
+        type: 'bar',
+        data: {
+        labels: data.topEvents.map(e => e.eventName),
+        datasets: [{
+        label: 'Số người đăng ký',
+        data: data.topEvents.map(e => e.participants),
+        backgroundColor: 'rgba(23, 162, 184, 0.7)',
+        borderColor: 'rgba(23, 162, 184, 1)',
+        borderWidth: 1
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+        y: {
+        beginAtZero: true
+        }
+        }
+        }
+        });
+        } catch (err) {
+        console.error('Error loading event stats:', err);
+        }
+        }
 
-                // Event listeners
-                document.getElementById('btnBroadcast').addEventListener('click', broadcastMessage);
-                document.getElementById('btnCreateEvent').addEventListener('click', createQuickEvent);
-                document.getElementById('btnCreateAnnouncement').addEventListener('click', createAnnouncement);
+        // Event listeners
+        document.getElementById('btnBroadcast').addEventListener('click', broadcastMessage);
+        document.getElementById('btnCreateEvent').addEventListener('click', createQuickEvent);
+        document.getElementById('btnCreateAnnouncement').addEventListener('click', createAnnouncement);
 
-                // SignalR event listeners
-                if (typeof connection !== 'undefined') {
-                    connection.on("NewEventCreated", function(data) {
-                        console.log('New event created:', data);
-                        loadUpcomingEvents();
-                        loadEventStats();
-                        showToast(data.message, 'info', 'Sự kiện mới');
-                    });
+        // SignalR event listeners
+        if (typeof connection !== 'undefined') {
+        connection.on("NewEventCreated", function(data) {
+        console.log('New event created:', data);
+        loadUpcomingEvents();
+        loadEventStats();
+        showToast(data.message, 'info', 'Sự kiện mới');
+        });
 
-                    connection.on("EventCancelled", function(data) {
-                        console.log('Event cancelled:', data);
-                        loadUpcomingEvents();
-                        loadEventStats();
-                        showToast(`Sự kiện "${data.eventName}" đã bị hủy. Lý do: ${data.reason}`, 'warning', 'Sự kiện hủy');
-                    });
-                }
+        connection.on("EventCancelled", function(data) {
+        console.log('Event cancelled:', data);
+        loadUpcomingEvents();
+        loadEventStats();
+        showToast(`Sự kiện "${data.eventName}" đã bị hủy. Lý do: ${data.reason}`, 'warning', 'Sự kiện hủy');
+        });
+        }
 
-                // Refresh stats
-                setInterval(async () => {
-                    try {
-                        const response = await fetch('/Dashboard/GetRealtimeStats');
-                        const stats = await response.json();
+        // Refresh stats
+        setInterval(async () => {
+        try {
+        const response = await fetch('/Dashboard/GetRealtimeStats');
+        const stats = await response.json();
 
-                        document.getElementById('onlineUsersCount').textContent = stats.onlineUsers;
-                        document.getElementById('activeRentalsCount').textContent = stats.activeRentals;
-                        document.getElementById('todayRentalsCount').textContent = stats.todayRentals;
+        document.getElementById('onlineUsersCount').textContent = stats.onlineUsers;
+        document.getElementById('activeRentalsCount').textContent = stats.activeRentals;
+        document.getElementById('todayRentalsCount').textContent = stats.todayRentals;
 
-                        updateChart(stats);
-                    } catch (err) {
-                        console.error('Error loading stats:', err);
-                    }
-                }, 5000);
+        updateChart(stats);
+        } catch (err) {
+        console.error('Error loading stats:', err);
+        }
+        }, 5000);
 
-                // Load initial data
-                console.log('Loading initial data...');
-                loadOnlineUsers();
-                loadUpcomingEvents();
-                loadEventStats();
-                loadAnnouncements();
+        // Load initial data
+        console.log('Loading initial data...');
+        loadOnlineUsers();
+        loadUpcomingEvents();
+        loadEventStats();
+        loadAnnouncements();
 
-                fetch('/Dashboard/GetRealtimeStats')
-                    .then(res => res.json())
-                    .then(stats => {
-                        console.log('Initial stats:', stats);
-                        document.getElementById('onlineUsersCount').textContent = stats.onlineUsers;
-                    })
-                    .catch(err => console.error('Error loading initial stats:', err));
+        fetch('/Dashboard/GetRealtimeStats')
+        .then(res => res.json())
+        .then(stats => {
+        console.log('Initial stats:', stats);
+        document.getElementById('onlineUsersCount').textContent = stats.onlineUsers;
+        })
+        .catch(err => console.error('Error loading initial stats:', err));
 
-                setInterval(() => {
-                    loadUpcomingEvents();
-                    loadEventStats();
-                    loadAnnouncements();
-                }, 30000);
+        setInterval(() => {
+        loadUpcomingEvents();
+        loadEventStats();
+        loadAnnouncements();
+        }, 30000);
+   
+        // ===== EXPORT PANEL =====
+
+        // Chevron toggle khi collapse/expand
+        document.getElementById('exportPanel').addEventListener('hide.bs.collapse', () => {
+        document.getElementById('exportChevron').classList.replace('fa-chevron-up', 'fa-chevron-down');
+        });
+        document.getElementById('exportPanel').addEventListener('show.bs.collapse', () => {
+        document.getElementById('exportChevron').classList.replace('fa-chevron-down', 'fa-chevron-up');
+        });
+
+        function switchExportTab(type) {
+        const isRentals = type === 'rentals';
+        document.getElementById('exportTabRentals').style.display = isRentals ? '' : 'none';
+        document.getElementById('exportTabEvents').style.display  = isRentals ? 'none' : '';
+        document.getElementById('tabBtnRentals').className = isRentals
+        ? 'btn btn-success active' : 'btn btn-outline-success';
+        document.getElementById('tabBtnEvents').className  = isRentals
+        ? 'btn btn-outline-success' : 'btn btn-success active';
+        }
+
+        async function exportToExcel(type) {
+        const btnId = type === 'rentals' ? 'btnExportRentals' : 'btnExportEvents';
+        const btn = document.getElementById(btnId);
+        const originalHtml = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang xuất...';
+
+        try {
+        let url;
+        if (type === 'rentals') {
+        const p = new URLSearchParams({
+        search:    document.getElementById('exportRentalSearch').value,
+        status:    document.getElementById('exportRentalStatus').value,
+        fromDate:  document.getElementById('exportRentalFrom').value,
+        toDate:    document.getElementById('exportRentalTo').value,
+        sortBy:    document.getElementById('exportRentalSortBy').value,
+        sortOrder: document.getElementById('exportRentalSortOrder').value,
+        });
+        url = `/Dashboard/ExportRentals?${p}`;
+        } else {
+        const p = new URLSearchParams({
+        search:      document.getElementById('exportEventSearch').value,
+        eventStatus: document.getElementById('exportEventStatus').value,
+        sortBy:      document.getElementById('exportEventSortBy').value,
+        sortOrder:   document.getElementById('exportEventSortOrder').value,
+        });
+        url = `/Dashboard/ExportEvents?${p}`;
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(await response.text());
+
+        const blob = await response.blob();
+
+        // Lấy filename từ Content-Disposition header
+        const cd = response.headers.get('Content-Disposition') ?? '';
+        const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        const filename = match?.[1]?.replace(/['"]/g, '')
+        ?? (type === 'rentals' ? `BaoCaoMuonTra_${_dateTag()}.xlsx` : `BaoCaoSuKien_${_dateTag()}.xlsx`);
+
+        // Trigger download
+        const a = document.createElement('a');
+        a.href = window.URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(a.href);
+
+        showToast(`Đã xuất file: ${filename}`, 'success', 'Xuất Excel thành công');
+
+        } catch (err) {
+        console.error('Export error:', err);
+        showToast('Lỗi xuất Excel: ' + err.message, 'error');
+        } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        }
+        }
+
+        // Live preview: đếm số bản ghi khi thay đổi filter mượn trả
+        let _previewTimer;
+        async function _updateRentalPreview() {
+        clearTimeout(_previewTimer);
+        _previewTimer = setTimeout(async () => {
+        const badge = document.getElementById('rentalPreviewBadge');
+        const text  = document.getElementById('rentalPreviewText');
+        try {
+        const p = new URLSearchParams({
+        search:   document.getElementById('exportRentalSearch').value,
+        status:   document.getElementById('exportRentalStatus').value,
+        fromDate: document.getElementById('exportRentalFrom').value,
+        toDate:   document.getElementById('exportRentalTo').value,
+        });
+        const res  = await fetch(`/Dashboard/GetRentalCount?${p}`);
+        const data = await res.json();
+        text.textContent = `${data.count}`;
+        badge.style.display = 'inline-block';
+        } catch { badge.style.display = 'none'; }
+        }, 450);
+        }
+
+        ['exportRentalSearch', 'exportRentalStatus', 'exportRentalFrom', 'exportRentalTo']
+        .forEach(id => {
+        const el = document.getElementById(id);
+        el?.addEventListener('input',  _updateRentalPreview);
+        el?.addEventListener('change', _updateRentalPreview);
+        });
+
+        async function exportSummary() {
+        try {
+        const response = await fetch('/Dashboard/ExportSummary');
+        if (!response.ok) throw new Error(await response.text());
+
+        const blob = await response.blob();
+        const a = document.createElement('a');
+        a.href = window.URL.createObjectURL(blob);
+        a.download = `TongQuan_${_dateTag()}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(a.href);
+
+        showToast('Đã xuất file tổng quan!', 'success', 'Xuất Excel thành công');
+        } catch (err) {
+        showToast('Lỗi xuất Excel: ' + err.message, 'error');
+        }
+        }
+
+
+        function _dateTag() {
+        const d = new Date();
+        const p = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+        }
     </script>
+
 }

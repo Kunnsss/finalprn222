@@ -380,6 +380,22 @@
         </div>
     </div>
 
+
+    <div id="forceLogoutOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:99999; justify-content:center; align-items:center;">
+        <div style="background:white; border-radius:16px; padding:40px; max-width:420px; width:90%; text-align:center;">
+            <i class="fas fa-user-slash fa-3x text-danger mb-3"></i>
+            <h4 class="text-danger fw-bold">Tài khoản bị đăng xuất</h4>
+            <p class="text-muted">Quản trị viên đã buộc đăng xuất tài khoản của bạn.</p>
+            <div style="background:#fff3cd; border-left:4px solid #ffc107; border-radius:8px; padding:12px 16px; margin:16px 0; text-align:left;">
+                <strong><i class="fas fa-comment-alt me-1"></i> Lý do:</strong>
+                <div id="forceLogoutReason" class="mt-1"></div>
+            </div>
+            <p class="text-muted mb-1">Tự động chuyển hướng sau</p>
+            <div id="forceLogoutCountdown" style="font-size:2rem; font-weight:700; color:#dc3545;">5</div>
+            <p class="text-muted">giây...</p>
+        </div>
+    </div>
+
     @* ==================== CUSTOM CONFIRMATION MODAL ==================== *@
     <div class="modal fade custom-confirm-modal" id="globalConfirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -569,6 +585,37 @@
 
             connection.on("EventCancelled", function (data) {
                 showToast(`Sự kiện "${data.eventName}" đã bị hủy. Lý do: ${data.reason}`, "Warning");
+            });
+
+            connection.on("ForceLogout", function (data) {
+            const reason = data.reason || "Không có lý do cụ thể";
+
+            document.getElementById('forceLogoutReason').textContent = reason;
+            document.getElementById('forceLogoutOverlay').style.display = 'flex';
+
+            let seconds = 5;
+            const countdownEl = document.getElementById('forceLogoutCountdown');
+
+            const timer = setInterval(function () {
+            seconds--;
+            countdownEl.textContent = seconds;
+            if (seconds <= 0) {
+            clearInterval(timer);
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/Account/Logout';
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) {
+            const hiddenToken = document.createElement('input');
+            hiddenToken.type = 'hidden';
+            hiddenToken.name = '__RequestVerificationToken';
+            hiddenToken.value = token.value;
+            form.appendChild(hiddenToken);
+            }
+            document.body.appendChild(form);
+            form.submit();
+            }
+            }, 1000);
             });
 
             connection.start()
