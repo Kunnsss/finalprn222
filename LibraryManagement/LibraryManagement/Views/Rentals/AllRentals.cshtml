@@ -120,7 +120,7 @@
     </div>
 </div>
 
-@if (TempData["SuccessMessage"] != null)
+@* @if (TempData["SuccessMessage"] != null)
 {
     var message = TempData["SuccessMessage"].ToString();
     // Loại bỏ localhost URLs khỏi thông báo
@@ -139,7 +139,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     </div>
-}
+} *@
 
 @if (TempData["ErrorMessage"] != null)
 {
@@ -491,7 +491,7 @@
                                     var rentalDays = rental.GetRentalDays();
 
                                     <tr class="@rowClass">
-                                        <td><strong>#ON@rental.OnlineTransactionId</strong></td>
+                                        <td><strong>@rental.OnlineTransactionId</strong></td>
                                         <td>
                                             <i class="fas fa-user"></i> @rental.User?.FullName
                                             <br />
