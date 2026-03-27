@@ -1,0 +1,137 @@
+@model LibraryManagement.Models.RentalTransaction
+@{
+    var paymentType = ViewBag.PaymentType as string;
+    var paymentAmount = (decimal)ViewBag.PaymentAmount;
+    string pageTitle = paymentType switch {
+        "Compensation" => "Thanh toán đền bù mất sách",
+        "LateFee"      => "Thanh toán phí phạt trễ hạn",
+        _              => "Thanh toán thuê sách"
+    };
+    string badgeClass = paymentType switch {
+        "Compensation" => "bg-danger",
+        "LateFee"      => "bg-warning text-dark",
+        _              => "bg-primary"
+    };
+    ViewData["Title"] = pageTitle;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        }
+
+        <div class="card shadow">
+            <div class="card-header text-white @badgeClass">
+                <h4 class="mb-0"><i class="fas fa-credit-card"></i> @pageTitle</h4>
+            </div>
+            <div class="card-body">
+
+                <!-- Book info -->
+                <div class="d-flex align-items-center mb-4">
+                    <div class="me-3">
+                        <i class="fas fa-book fa-3x text-secondary"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1">@Model.Book.Title</h5>
+                        <span class="badge @badgeClass">Mã giao dịch #@Model.TransactionId</span>
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- Transaction details -->
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">Ngày thuê</td>
+                            <td><strong>@Model.RentalDate.ToString("dd/MM/yyyy")</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Hạn trả</td>
+                            <td><strong>@Model.DueDate.ToString("dd/MM/yyyy")</strong></td>
+                        </tr>
+                        @if (Model.ReturnDate.HasValue)
+                        {
+                            <tr>
+                                <td class="text-muted">Ngày trả / báo mất</td>
+                                <td><strong>@Model.ReturnDate.Value.ToString("dd/MM/yyyy")</strong></td>
+                            </tr>
+                        }
+                        <tr>
+                            <td class="text-muted">Giá thuê</td>
+                            <td>@Model.RentalPrice.ToString("N0") VND / ngày</td>
+                        </tr>
+                        @if (Model.LateFee > 0)
+                        {
+                            <tr>
+                                <td class="text-muted">Phí phạt / đền bù</td>
+                                <td class="text-danger"><strong>@Model.LateFee.ToString("N0") VND</strong></td>
+                            </tr>
+                        }
+                        <tr class="table-active">
+                            <td><strong>Số tiền cần thanh toán</strong></td>
+                            <td><strong class="text-success fs-5">@paymentAmount.ToString("N0") VND</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <hr />
+
+                @if (paymentType == "LateFee")
+                {
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Bạn đang thanh toán <strong>phí phạt trễ hạn</strong> cho sách đã trả.
+                    </div>
+                }
+                else if (paymentType == "Compensation")
+                {
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Bạn đang thanh toán <strong>phí đền bù sách mất</strong>. Sau khi thanh toán, giao dịch sẽ được đóng.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Sau khi thanh toán, bạn có thể tiếp tục mượn sách. Bạn cũng có thể thanh toán trực tiếp tại quầy thư viện.
+                    </div>
+                }
+
+                <!-- Action buttons -->
+                <div class="d-grid gap-2">
+                    @if (paymentType == "LateFee")
+                    {
+                        <form method="post" asp-action="PayLateFeeOnline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="transactionId" value="@Model.TransactionId" />
+                            <button type="submit" class="btn btn-warning w-100 btn-lg">
+                                <i class="fas fa-credit-card"></i> Thanh toán bằng PayOS
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form method="post" asp-action="PayOnline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="transactionId" value="@Model.TransactionId" />
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                <i class="fas fa-credit-card"></i> Thanh toán bằng PayOS
+                            </button>
+                        </form>
+                    }
+                    <a asp-action="MyRentals" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>

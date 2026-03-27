@@ -100,33 +100,56 @@
                         }
                     </td>
                     <td>
-                        @if (rental.Status == "Renting" || rental.Status == "Overdue" || rental.Status == "PendingPayment")
+                        @if (rental.Status == "Renting" || rental.Status == "Overdue")
                         {
-                            @if (rental.Status == "Renting" || rental.Status == "Overdue")
+                            <button type="button" class="btn btn-sm btn-success me-1"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#extendModal"
+                                    data-transaction-id="@rental.TransactionId"
+                                    data-book-title="@rental.Book.Title"
+                                    data-rental-price="@rental.RentalPrice.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)">
+                                <i class="fas fa-clock"></i> Gia hạn
+                            </button>
+                            <button type="button" class="btn btn-sm btn-warning me-1"
+                                    onclick="confirmLost(@rental.TransactionId, '@rental.Book.Title')">
+                                <i class="fas fa-exclamation-triangle"></i> Báo mất
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger"
+                                    onclick="confirmCancel(@rental.TransactionId, '@rental.Book.Title')">
+                                <i class="fas fa-times"></i> Hủy
+                            </button>
+                        }
+                        else if (rental.Status == "PendingPayment")
+                        {
+                            @if (rental.ReturnDate.HasValue)
                             {
-                                <button type="button" class="btn btn-sm btn-success me-1"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#extendModal"
-                                        data-transaction-id="@rental.TransactionId"
-                                        data-book-title="@rental.Book.Title">
-                                    <i class="fas fa-clock"></i> Gia hạn
-                                </button>
-                                <button type="button" class="btn btn-sm btn-warning me-1"
-                                        onclick="confirmLost(@rental.TransactionId, '@rental.Book.Title')">
-                                    <i class="fas fa-exclamation-triangle"></i> Báo mất
-                                </button>
-                            }
-                            @if (rental.Status == "PendingPayment" && rental.ReturnDate.HasValue)
-                            {
-                                <span class="text-muted small"><i class="fas fa-info-circle"></i> Vui lòng đến quầy thanh toán phí đền bù</span>
+                                <!-- Compensation (lost book) -->
+                                <a asp-action="PaymentDetail" asp-route-transactionId="@rental.TransactionId"
+                                   class="btn btn-sm btn-danger me-1">
+                                    <i class="fas fa-credit-card"></i> Thanh toán đền bù
+                                </a>
+                                <span class="text-muted small d-block mt-1"><i class="fas fa-info-circle"></i> Hoặc đến quầy thanh toán</span>
                             }
                             else
                             {
+                                <!-- Initial rental payment -->
+                                <a asp-action="PaymentDetail" asp-route-transactionId="@rental.TransactionId"
+                                   class="btn btn-sm btn-primary me-1">
+                                    <i class="fas fa-credit-card"></i> Thanh toán online
+                                </a>
                                 <button type="button" class="btn btn-sm btn-danger"
                                         onclick="confirmCancel(@rental.TransactionId, '@rental.Book.Title')">
                                     <i class="fas fa-times"></i> Hủy
                                 </button>
+                                <span class="text-muted small d-block mt-1"><i class="fas fa-info-circle"></i> Hoặc đến quầy thanh toán</span>
                             }
+                        }
+                        else if (rental.Status == "Returned" && rental.LateFee > 0 && rental.LateFeePaymentStatus != "Paid")
+                        {
+                            <a asp-action="PaymentDetail" asp-route-transactionId="@rental.TransactionId"
+                               class="btn btn-sm btn-warning">
+                                <i class="fas fa-credit-card"></i> Trả phí phạt (@rental.LateFee.ToString("N0") VND)
+                            </a>
                         }
                         else
                         {
@@ -146,32 +169,38 @@
     </div>
 }
 
-<!-- Modal Gia hạn -->
+<!-- Modal Gia hạn (chuyển sang PayOS) -->
 <div class="modal fade" id="extendModal" tabindex="-1" aria-labelledby="extendModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="extendModalLabel">Gia hạn sách</h5>
+                <h5 class="modal-title" id="extendModalLabel"><i class="fas fa-clock"></i> Gia hạn sách</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="extendForm" method="post" asp-action="ExtendRental">
+                @Html.AntiForgeryToken()
                 <div class="modal-body">
                     <input type="hidden" id="extendTransactionId" name="transactionId" />
-                    <p>Bạn muốn gia hạn sách <strong id="extendBookTitle"></strong> thêm bao nhiêu ngày?</p>
-                    
+                    <input type="hidden" id="extendRentalPrice" value="" />
+                    <p>Gia hạn sách <strong id="extendBookTitle"></strong></p>
+
                     <div class="mb-3">
                         <label for="additionalDays" class="form-label">Số ngày gia hạn:</label>
-                        <select class="form-select" id="additionalDays" name="additionalDays" required>
+                        <select class="form-select" id="additionalDays" name="additionalDays" required onchange="calcRentalFee(this.value)">
                             <option value="">-- Chọn số ngày --</option>
                             <option value="7">7 ngày</option>
                             <option value="14">14 ngày</option>
                             <option value="30">30 ngày</option>
                         </select>
                     </div>
+                    <div id="rentalFeePreview" class="alert alert-info d-none">
+                        Phí gia hạn: <strong id="rentalFeeAmount"></strong> VND
+                        <br/><small class="text-muted">Bạn sẽ được chuyển đến cổng thanh toán PayOS</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-success">Xác nhận gia hạn</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-credit-card"></i> Thanh toán qua PayOS</button>
                 </div>
             </form>
         </div>
@@ -195,10 +224,22 @@
         var button = event.relatedTarget;
         var transactionId = button.getAttribute('data-transaction-id');
         var bookTitle = button.getAttribute('data-book-title');
-        
+        var rentalPrice = button.getAttribute('data-rental-price');
+
         document.getElementById('extendTransactionId').value = transactionId;
         document.getElementById('extendBookTitle').textContent = bookTitle;
+        document.getElementById('extendRentalPrice').value = rentalPrice;
+        document.getElementById('additionalDays').value = '';
+        document.getElementById('rentalFeePreview').classList.add('d-none');
     });
+
+    function calcRentalFee(days) {
+        if (!days) { document.getElementById('rentalFeePreview').classList.add('d-none'); return; }
+        var price = parseFloat(document.getElementById('extendRentalPrice').value) || 0;
+        var fee = Math.round(price * parseInt(days));
+        document.getElementById('rentalFeeAmount').textContent = fee.toLocaleString('vi-VN');
+        document.getElementById('rentalFeePreview').classList.remove('d-none');
+    }
 
     // Xử lý xác nhận hủy
     function confirmCancel(transactionId, bookTitle) {
