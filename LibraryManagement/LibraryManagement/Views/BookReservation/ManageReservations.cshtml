@@ -409,7 +409,13 @@
                             showToast('Đã đánh dấu sẵn sàng và gửi thông báo cho người dùng!', 'success', 'Thành công');
                             setTimeout(() => location.reload(), 1500);
                         } else {
-                            showToast('Không thể thực hiện thao tác. Vui lòng thử lại!', 'error', 'Lỗi');
+                            let data = null;
+                            try {
+                                data = await response.json();
+                            } catch (e) {
+                                // ignore parse errors
+                            }
+                            showToast(data?.message || 'Không thể thực hiện thao tác. Vui lòng thử lại!', 'error', 'Lỗi');
                         }
                     } catch (error) {
                         console.error('Error:', error);
@@ -434,7 +440,13 @@
                             showToast('Đã đánh dấu hoàn thành!', 'success', 'Thành công');
                             setTimeout(() => location.reload(), 1500);
                         } else {
-                            showToast('Không thể thực hiện thao tác. Vui lòng thử lại!', 'error', 'Lỗi');
+                            let data = null;
+                            try {
+                                data = await response.json();
+                            } catch (e) {
+                                // ignore parse errors
+                            }
+                            showToast(data?.message || 'Không thể thực hiện thao tác. Vui lòng thử lại!', 'error', 'Lỗi');
                         }
                     } catch (error) {
                         console.error('Error:', error);

@@ -27,10 +27,8 @@ namespace LibraryManagement.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Cập nhật trạng thái Online Rentals hết hạn
             await UpdateExpiredOnlineRentals(userId);
 
-            // Lấy từ ReadingHistory - nguồn chính
             var readingHistoryList = await _context.ReadingHistory
                 .Include(r => r.Book)
                     .ThenInclude(b => b.Category)
@@ -47,11 +45,8 @@ namespace LibraryManagement.Controllers
                 .OrderByDescending(r => r.ViewDate)
                 .ToListAsync();
 
-            // Lấy các bookId đã có trong ReadingHistory
             var existingBookIds = readingHistoryList.Select(r => r.BookId).ToHashSet();
 
-            // Lấy từ OnlineRentalTransactions - chỉ những sách chưa có trong ReadingHistory
-            // Kiểm tra hết hạn realtime
             var onlineRentals = await _context.OnlineRentalTransactions
                 .Include(o => o.Book)
                     .ThenInclude(b => b.Category)
@@ -64,17 +59,14 @@ namespace LibraryManagement.Controllers
                 Book = o.Book,
                 ViewDate = o.PurchaseDate,
                 ViewDuration = null,
-                // FIXED: Bỏ HasValue vì ExpiryDate là DateTime, không phải DateTime?
                 IsCompleted = o.Status == "Expired" || o.ExpiryDate < DateTime.Now,
                 Source = "Online",
                 ExpiryDate = o.ExpiryDate,
-                // FIXED: Bỏ HasValue
                 Status = (o.Status == "Active" && o.ExpiryDate < DateTime.Now)
                     ? "Expired"
                     : o.Status
             }).ToList();
 
-            // Lấy từ RentalTransactions - chỉ những sách chưa có
             var physicalRentals = await _context.RentalTransactions
                 .Include(r => r.Book)
                     .ThenInclude(b => b.Category)
@@ -94,7 +86,6 @@ namespace LibraryManagement.Controllers
                 })
                 .ToListAsync();
 
-            // Gộp tất cả
             var allHistory = readingHistoryList
                 .Concat(onlineRentalsViewModel)
                 .Concat(physicalRentals)

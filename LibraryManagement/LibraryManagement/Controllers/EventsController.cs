@@ -30,7 +30,6 @@ namespace LibraryManagement.Controllers
                 .Include(e => e.Creator)
                 .Where(e => e.IsActive);
 
-            // Lọc theo filter
             switch (filter.ToLower())
             {
                 case "upcoming":
@@ -45,14 +44,11 @@ namespace LibraryManagement.Controllers
                 case "full":
                     query = query.Where(e => e.EventDate >= DateTime.Now && e.CurrentParticipants >= e.MaxParticipants);
                     break;
-                default: // "all"
+                default:
                     break;
             }
 
-            var events = await query
-                .OrderBy(e => e.EventDate)
-                .ToListAsync();
-
+            var events = await query.OrderBy(e => e.EventDate).ToListAsync();
             ViewBag.Filter = filter;
             return View(events);
         }
@@ -278,7 +274,7 @@ namespace LibraryManagement.Controllers
 
             var myRegistrations = await _context.EventRegistrations
                 .Include(r => r.Event)
-                .ThenInclude(e => e.Creator)
+                    .ThenInclude(e => e.Creator)
                 .Where(r => r.UserId == userId)
                 .OrderByDescending(r => r.RegistrationDate)
                 .ToListAsync();

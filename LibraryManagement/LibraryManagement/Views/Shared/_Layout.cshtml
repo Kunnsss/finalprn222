@@ -560,78 +560,70 @@
     @if (User.Identity.IsAuthenticated)
     {
         <script>
-            // ========== LibraryHub: rental, events, system ==========
-            const libHub = new signalR.HubConnectionBuilder()
+            // SignalR Connection
+            const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/libraryHub")
                 .build();
 
-            libHub.on("BookNowAvailable", function (data) {
-                updateNotificationCount(1);
-                showToast(data.message, "BookAvailable");
-            });
-
-            libHub.on("SystemMessage", function (data) {
-                showSystemMessage(data.title, data.message, data.type);
-            });
-
-            libHub.on("NewEventCreated", function (data) {
-                showToast(data.message, "Info");
-            });
-
-            libHub.on("EventCancelled", function (data) {
-                showToast(`Sự kiện "${data.eventName}" đã bị hủy. Lý do: ${data.reason}`, "Warning");
-            });
-
-            libHub.on("ForceLogout", function (data) {
-                const reason = data.reason || "Không có lý do cụ thể";
-                document.getElementById('forceLogoutReason').textContent = reason;
-                document.getElementById('forceLogoutOverlay').style.display = 'flex';
-
-                let seconds = 5;
-                const countdownEl = document.getElementById('forceLogoutCountdown');
-
-                const timer = setInterval(function () {
-                    seconds--;
-                    countdownEl.textContent = seconds;
-                    if (seconds <= 0) {
-                        clearInterval(timer);
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = '/Account/Logout';
-                        const token = document.querySelector('input[name="__RequestVerificationToken"]');
-                        if (token) {
-                            const hiddenToken = document.createElement('input');
-                            hiddenToken.type = 'hidden';
-                            hiddenToken.name = '__RequestVerificationToken';
-                            hiddenToken.value = token.value;
-                            form.appendChild(hiddenToken);
-                        }
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-                }, 1000);
-            });
-
-            libHub.start()
-                .then(() => console.log('LibraryHub Connected'))
-                .catch(err => console.error('LibraryHub Error:', err.toString()));
-
-            // ========== NotificationHub: ReceiveNotification ==========
-            const notifHub = new signalR.HubConnectionBuilder()
-                .withUrl("/notificationHub")
-                .build();
-
-            notifHub.on("ReceiveNotification", function (notification) {
+            connection.on("ReceiveNotification", function (notification) {
                 updateNotificationCount(1);
                 showToast(notification.message, notification.type);
             });
 
-            notifHub.start()
+            connection.on("BookNowAvailable", function (data) {
+                updateNotificationCount(1);
+                showToast(data.message, "BookAvailable");
+            });
+
+            connection.on("SystemMessage", function (data) {
+                showSystemMessage(data.title, data.message, data.type);
+            });
+
+            connection.on("NewEventCreated", function (data) {
+                showToast(data.message, "Info");
+            });
+
+            connection.on("EventCancelled", function (data) {
+                showToast(`Sự kiện "${data.eventName}" đã bị hủy. Lý do: ${data.reason}`, "Warning");
+            });
+
+            connection.on("ForceLogout", function (data) {
+            const reason = data.reason || "Không có lý do cụ thể";
+
+            document.getElementById('forceLogoutReason').textContent = reason;
+            document.getElementById('forceLogoutOverlay').style.display = 'flex';
+
+            let seconds = 5;
+            const countdownEl = document.getElementById('forceLogoutCountdown');
+
+            const timer = setInterval(function () {
+            seconds--;
+            countdownEl.textContent = seconds;
+            if (seconds <= 0) {
+            clearInterval(timer);
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/Account/Logout';
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) {
+            const hiddenToken = document.createElement('input');
+            hiddenToken.type = 'hidden';
+            hiddenToken.name = '__RequestVerificationToken';
+            hiddenToken.value = token.value;
+            form.appendChild(hiddenToken);
+            }
+            document.body.appendChild(form);
+            form.submit();
+            }
+            }, 1000);
+            });
+
+            connection.start()
                 .then(() => {
-                    console.log('NotificationHub Connected');
+                    console.log('SignalR Connected');
                     loadNotificationCount();
                 })
-                .catch(err => console.error('NotificationHub Error:', err.toString()));
+                .catch(err => console.error('SignalR Error:', err.toString()));
 
             function loadNotificationCount() {
                 fetch('/Notifications/GetUnreadCount')

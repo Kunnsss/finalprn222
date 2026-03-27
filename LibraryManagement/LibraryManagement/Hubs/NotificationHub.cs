@@ -1,4 +1,4 @@
-// Hubs/NotificationHub.cs
+﻿// Hubs/NotificationHub.cs
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
 
