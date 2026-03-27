@@ -28,11 +28,11 @@ else
             <tbody>
                 @foreach (var reservation in Model)
                 {
-                    <tr>
+                    <tr data-reservation-id="@reservation.ReservationId" data-book-id="@reservation.BookId">
                         <td>@reservation.Book?.Title</td>
                         <td>@reservation.ReservationDate.ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@reservation.ExpiryDate.ToString("dd/MM/yyyy HH:mm")</td>
-                        <td>
+                        <td class="status-badge">
                             @if (reservation.Status == "Pending")
                             {
                                 <span class="badge bg-warning">Đang chờ</span>
@@ -70,3 +70,50 @@ else
 }
 
 @await Html.PartialAsync("_Pagination")
+
+@section Scripts {
+    <script>
+        // ==================== SIGNALR REALTIME ====================
+        function showToast(message, type = 'info') {
+            const bg = type === 'success' ? '#198754' : type === 'error' ? '#dc3545' : '#0dcaf0';
+            const t = document.createElement('div');
+            t.style.cssText = `position:fixed;top:20px;right:20px;background:${bg};color:#fff;padding:12px 18px;border-radius:10px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.15);max-width:320px;font-size:14px;`;
+            t.textContent = message;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+
+        // Listen for "sách đặt chỗ đã sẵn sàng" from BookReservationService
+        const reservationConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/libraryHub")
+            .build();
+
+        reservationConnection.on("BookNowAvailable", function (data) {
+            if (!data) return;
+
+            showToast(data.message || `Sách "${data.bookTitle || data.bookTitle}" đã có sẵn!`, 'success');
+
+            // Update the specific row by bookId
+            if (data.bookId) {
+                const row = document.querySelector(`tr[data-book-id="${data.bookId}"]`);
+                if (row) {
+                    const badgeCell = row.querySelector('.status-badge');
+                    if (badgeCell) {
+                        badgeCell.innerHTML = '<span class="badge bg-success">Sẵn sàng</span>';
+                    }
+                    const actionsCell = row.querySelector('td:last-child');
+                    if (actionsCell) {
+                        actionsCell.innerHTML = '<span class="text-muted small">Vui lòng đến lấy trong 3 ngày</span>';
+                    }
+                    // Highlight row briefly
+                    row.style.background = '#d1e7dd';
+                    setTimeout(() => { row.style.background = ''; }, 2000);
+                }
+            }
+        });
+
+        reservationConnection.start()
+            .then(() => console.log('SignalR connected for MyReservations'))
+            .catch(err => console.error('SignalR error:', err));
+    </script>
+}

@@ -46,7 +46,7 @@
                     && rental.DueDate < DateTime.Now;
                 var rowClass = isLost ? "table-secondary" : (isCompensated ? "table-success" : (isOverdue ? "table-danger" : (rental.Status == "Returned" ? "table-success" : "")));
 
-                <tr class="@rowClass">
+                <tr class="@rowClass" data-transaction-id="@rental.TransactionId">
                     <td>@rental.Book.Title</td>
                     <td>@rental.RentalDate.ToString("dd/MM/yyyy")</td>
                     <td>@rental.DueDate.ToString("dd/MM/yyyy")</td>
@@ -67,7 +67,7 @@
                         }
                     </td>
                     <td><strong>@rental.TotalAmount.ToString("N0") VND</strong></td>
-                    <td>
+                    <td class="status-badge">
                         @if (rental.Status == "PendingPayment")
                         {
                             <span class="badge bg-warning">Chờ thanh toán</span>
@@ -238,6 +238,54 @@
 </form>
 
 <script>
+    // ==================== TOAST ====================
+    function showToast(message, type = 'info') {
+        const bg = type === 'success' ? '#198754' : type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#0dcaf0';
+        const t = document.createElement('div');
+        t.style.cssText = `position:fixed;top:20px;right:20px;background:${bg};color:#fff;padding:12px 18px;border-radius:10px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.15);max-width:320px;font-size:14px;`;
+        t.textContent = message;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3500);
+    }
+
+    // ==================== HELPERS ====================
+    function updateMyRentalRow(transactionId, status, lateFee) {
+        const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+        if (!row) return;
+
+        row.className = row.className.replace(/table-\w+/g, '').trim();
+        if (status === 'Lost') row.classList.add('table-secondary');
+        else if (status === 'Returned' || status === 'Compensated') row.classList.add('table-success');
+        else if (status === 'Overdue') row.classList.add('table-danger');
+
+        // Update status badge
+        const badgeMap = {
+            'PendingPayment': '<span class="badge bg-warning">Chờ thanh toán</span>',
+            'Cancelled': '<span class="badge bg-secondary">Đã hủy</span>',
+            'Returned': '<span class="badge bg-success">Đã trả</span>',
+            'Compensated': '<span class="badge bg-success">Đã đền bù</span>',
+            'Lost': '<span class="badge bg-dark">Đã báo mất</span>',
+            'Overdue': '<span class="badge bg-danger">Quá hạn</span>',
+            'Renting': '<span class="badge bg-primary">Đang thuê</span>'
+        };
+
+        const statusCell = row.querySelector('.status-badge');
+        if (statusCell) statusCell.innerHTML = badgeMap[status] || `<span class="badge bg-secondary">${status}</span>`;
+
+        // Update late fee cell (column 6)
+        if (lateFee !== undefined) {
+            const cells = row.querySelectorAll('td');
+            const feeCell = cells[5]; // Phí trễ column
+            if (feeCell) feeCell.innerHTML = lateFee > 0 ? `<span class="text-danger">${Number(lateFee).toLocaleString('vi-VN')} VND</span>` : '<span>0 VND</span>';
+        }
+
+        // Update actions (column 8) - simplified: show dash
+        const actionsCell = row.querySelector('td:last-child');
+        if (actionsCell && (status === 'Returned' || status === 'Cancelled' || status === 'Compensated')) {
+            actionsCell.innerHTML = '<span class="text-muted">-</span>';
+        }
+    }
+
     // Xử lý modal gia hạn
     var extendModal = document.getElementById('extendModal');
     extendModal.addEventListener('show.bs.modal', function (event) {
@@ -261,7 +309,6 @@
         document.getElementById('rentalFeePreview').classList.remove('d-none');
     }
 
-    // Xử lý xác nhận hủy
     function confirmCancel(transactionId, bookTitle) {
         if (confirm('Bạn có chắc chắn muốn hủy thuê sách "' + bookTitle + '"?')) {
             document.getElementById('cancelTransactionId').value = transactionId;
@@ -269,7 +316,6 @@
         }
     }
 
-    // Xử lý xác nhận báo mất
     function confirmLost(transactionId, bookTitle) {
         if (confirm('Bạn có chắc chắn muốn báo mất sách "' + bookTitle + '"?\nHành động này sẽ gửi thông báo đến thư viện.')) {
             document.getElementById('lostTransactionId').value = transactionId;
@@ -277,17 +323,43 @@
         }
     }
 
-    // SignalR - Lắng nghe cập nhật từ server
+    // ==================== SIGNALR REALTIME ====================
     const rentalConnection = new signalR.HubConnectionBuilder()
         .withUrl("/libraryHub")
         .build();
 
-    rentalConnection.on("RentalUpdated", function () {
-        // Reload trang khi có cập nhật từ trang khác
-        location.reload();
+    rentalConnection.on("RentalUpdated", function (data) {
+        // Cập nhật dòng cụ thể — nếu transactionId trùng với dòng hiện tại thì reload
+        if (!data || !data.transactionId) {
+            location.reload();
+            return;
+        }
+        var currentRow = document.querySelector(`tr[data-transaction-id="${data.transactionId}"]`);
+        if (currentRow) {
+            showToast(`Giao dịch #${data.transactionId} vừa được cập nhật!`, 'info');
+            updateMyRentalRow(data.transactionId, data.status);
+        } else {
+            location.reload();
+        }
+    });
+
+    // Khi sách bị báo mất (admin xử lý xong...)
+    rentalConnection.on("LostBookUpdated", function (data) {
+        if (data && data.transactionId) {
+            var row = document.querySelector(`tr[data-transaction-id="${data.transactionId}"]`);
+            if (row) {
+                showToast(`Cập nhật: ${data.message || 'Trạng thái giao dịch thay đổi'}`, 'warning');
+                updateMyRentalRow(data.transactionId, 'Lost');
+            }
+        }
+    });
+
+    // Khi số lượng sách thay đổi
+    rentalConnection.on("BookAvailabilityUpdated", function (data) {
+        console.log('Số lượng sách thay đổi:', data);
     });
 
     rentalConnection.start()
-        .then(() => console.log('SignalR connected for rentals'))
+        .then(() => console.log('SignalR connected for MyRentals'))
         .catch(err => console.error('SignalR error:', err));
 </script>

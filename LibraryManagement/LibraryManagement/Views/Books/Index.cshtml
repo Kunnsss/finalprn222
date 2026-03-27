@@ -142,6 +142,7 @@
     @foreach (var book in Model)
     {
         <div class="lm-book-item col-6 col-md-4 col-xl-3"
+             data-book-id="@book.BookId"
              data-sort-title="@(book.Title ?? "")"
              data-sort-author="@(book.Author ?? "")">
             <article class="lm-book-card h-100 d-flex flex-column">
@@ -168,7 +169,9 @@
                             }
                             @if (book.IsPhysical)
                             {
-                                <span class="ms-1"><i class="fas fa-box"></i> Còn @book.AvailableQuantity/@book.Quantity</span>
+                                <span class="ms-1 book-quantity" data-book-id="@book.BookId">
+                                    <i class="fas fa-box"></i> Còn @book.AvailableQuantity/@book.Quantity
+                                </span>
                             }
                             else
                             {
@@ -367,6 +370,52 @@
                 showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["ErrorMessage"]!.ToString() ?? "")), 'error');
                 </text>
             }
+
+            // ==================== SIGNALR REALTIME ====================
+            const bookConnection = new signalR.HubConnectionBuilder()
+                .withUrl("/libraryHub")
+                .build();
+
+            bookConnection.on("BookAvailabilityUpdated", function (data) {
+                if (!data || !data.bookId) return;
+
+                // Update quantity badge in book card
+                const qtyEl = document.querySelector(`.book-quantity[data-book-id="${data.bookId}"]`);
+                if (qtyEl) {
+                    qtyEl.innerHTML = `<i class="fas fa-box"></i> Còn ${data.availableQuantity}`;
+                    // Add flash animation
+                    qtyEl.style.transition = 'background 0.3s';
+                    qtyEl.style.background = '#d1e7dd';
+                    setTimeout(() => { qtyEl.style.background = ''; }, 1500);
+                }
+
+                // Update Rent button availability
+                const bookCard = document.querySelector(`.lm-book-item[data-book-id="${data.bookId}"]`);
+                if (bookCard) {
+                    const rentBtn = bookCard.querySelector('a.btn-primary[href*="Rent"]');
+                    const reserveBtn = bookCard.querySelector('form button.btn-warning');
+                    if (data.availableQuantity > 0 && rentBtn) {
+                        if (!rentBtn.querySelector('.fa-shopping-cart')) {
+                            // Button already shows rent, do nothing
+                        }
+                    } else if (data.availableQuantity <= 0 && !rentBtn) {
+                        // Switched to out of stock — button will re-render on page reload
+                        // For instant update, check if reserve form exists
+                        if (!reserveBtn) {
+                            const existingForm = bookCard.querySelector('form');
+                            if (existingForm) {
+                                // Already has reserve form
+                            } else {
+                                // Would need page reload for full button swap
+                            }
+                        }
+                    }
+                }
+            });
+
+            bookConnection.start()
+                .then(() => console.log('SignalR connected for Books/Index'))
+                .catch(err => console.error('SignalR error:', err));
         })();
     </script>
 }

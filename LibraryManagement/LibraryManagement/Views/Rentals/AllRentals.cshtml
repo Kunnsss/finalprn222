@@ -123,7 +123,6 @@
 @* @if (TempData["SuccessMessage"] != null)
 {
     var message = TempData["SuccessMessage"].ToString();
-    // Loại bỏ localhost URLs khỏi thông báo
     message = System.Text.RegularExpressions.Regex.Replace(message, @"https?://localhost:\d+[^\s]*", "");
     message = message.Trim();
 
@@ -294,7 +293,7 @@
                                     var isOverdue = rental.Status != "PendingPayment" && !isClosed && rental.DueDate < DateTime.Now;
                                     var rowClass = isLost ? "table-secondary" : (isCompensated ? "table-success" : (isOverdue ? "table-danger" : (rental.Status == "Returned" ? "" : "table-warning")));
 
-                                    <tr class="@rowClass">
+                                    <tr class="@rowClass" data-transaction-id="@rental.TransactionId">
                                         <td><strong>#@rental.TransactionId</strong></td>
                                         <td>
                                             <i class="fas fa-user"></i> @rental.User?.FullName
@@ -358,8 +357,8 @@
                                             {
                                                 <span class="text-muted">0 đ</span>
                                             }
-                                        </td>
-                                        <td>
+                                            </td>
+                                        <td class="status-badge">
                                             @if (rental.Status == "PendingPayment")
                                             {
                                                 <span class="badge bg-warning text-dark">
@@ -665,7 +664,93 @@
     <script>
         let currentForm = null;
 
-        // Auto-hide alerts after 6 seconds with fade animation
+        // ==================== TOAST NOTIFICATION SYSTEM ====================
+        function showRealtimeToast(message, type = 'info') {
+            const id = 'realtimeToast_' + Date.now();
+            const bg = type === 'success' ? '#198754' : type === 'danger' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#0dcaf0';
+            const icon = type === 'success' ? 'fa-check-circle' : type === 'danger' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+            const t = document.createElement('div');
+            t.id = id;
+            t.style.cssText = `position:fixed;top:20px;right:20px;background:${bg};color:#fff;padding:14px 18px;border-radius:10px;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:360px;font-size:14px;display:flex;align-items:center;gap:10px;animation:slideInRight .3s ease`;
+            t.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+            document.body.appendChild(t);
+            setTimeout(() => {
+                t.style.animation = 'fadeOutLeft .3s ease forwards';
+                setTimeout(() => t.remove(), 300);
+            }, 4000);
+        }
+
+        // ==================== ROW UPDATE HELPERS ====================
+        function updateOfflineRowStatus(transactionId, status) {
+            const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+            if (!row) return;
+
+            // Update row class
+            row.className = row.className.replace(/table-\w+/g, '').trim();
+            if (status === 'Lost') row.classList.add('table-secondary');
+            else if (status === 'Returned' || status === 'Compensated') row.classList.add('table-success');
+            else if (status === 'Overdue') row.classList.add('table-danger');
+            else if (status === 'Cancelled') row.classList.add('table-secondary');
+            else row.classList.add('table-warning');
+
+            // Update status badge
+            const statusCell = row.querySelector('.status-badge');
+            if (statusCell) {
+                const badgeMap = {
+                    'PendingPayment': '<span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Chờ thanh toán</span>',
+                    'Cancelled': '<span class="badge bg-secondary"><i class="fas fa-ban"></i> Đã hủy</span>',
+                    'Returned': '<span class="badge bg-success"><i class="fas fa-check"></i> Đã trả</span>',
+                    'Compensated': '<span class="badge bg-success"><i class="fas fa-check-double"></i> Đã đền bù</span>',
+                    'Lost': '<span class="badge bg-dark"><i class="fas fa-book-dead"></i> Đã báo mất</span>',
+                    'Overdue': '<span class="badge bg-danger"><i class="fas fa-clock"></i> Quá hạn</span>',
+                    'Renting': '<span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half"></i> Đang thuê</span>'
+                };
+                statusCell.innerHTML = badgeMap[status] || `<span class="badge bg-secondary">${status}</span>`;
+            }
+
+            // Update actions column
+            const actionsCell = row.querySelector('td:last-child');
+            if (actionsCell) {
+                if (status === 'Lost') {
+                    actionsCell.innerHTML = `<button type="button" class="btn btn-sm btn-dark btn-process-lost"
+                            data-bs-toggle="modal" data-bs-target="#processLostModal"
+                            data-transaction-id="${transactionId}" data-tx-label="Mã GD #${transactionId}">
+                        <i class="fas fa-cog"></i> Xử lý</button>`;
+                } else if (status === 'PendingPayment') {
+                    actionsCell.innerHTML = `<form asp-action="ConfirmPayment" method="post" style="display:inline;">
+                            <input type="hidden" name="transactionId" value="${transactionId}" />
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="fas fa-check-circle"></i> Xác nhận thanh toán</button></form>`;
+                } else if (status === 'Returned' || status === 'Compensated') {
+                    actionsCell.innerHTML = '<span class="text-muted">-</span>';
+                } else if (status !== 'Cancelled') {
+                    actionsCell.innerHTML = `<form asp-action="Return" method="post" style="display:inline;" class="return-form" data-transaction-id="${transactionId}">
+                            <input type="hidden" name="transactionId" value="${transactionId}" />
+                            <button type="button" class="btn btn-sm btn-success btn-return">
+                                <i class="fas fa-undo"></i> Nhận trả</button></form>`;
+                }
+            }
+
+            // Re-attach return button handler
+            row.querySelector('.btn-return')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                currentForm = $(this).closest('.return-form');
+                $('#confirmReturnModal').modal('show');
+            });
+        }
+
+        function updateLateFeeCell(transactionId, lateFee) {
+            const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+            if (!row) return;
+            const lateFeeCell = row.querySelector('td:nth-child(9)');
+            if (lateFeeCell) {
+                lateFeeCell.innerHTML = lateFee > 0
+                    ? `<strong class="text-danger">${Number(lateFee).toLocaleString('vi-VN')} đ</strong>`
+                    : '<span class="text-muted">0 đ</span>';
+            }
+        }
+
+        // ==================== AUTO-HIDE ALERTS ====================
         $(document).ready(function() {
             setTimeout(function() {
                 $('.alert').addClass('fade-out');
@@ -674,7 +759,6 @@
                 }, 500);
             }, 6000);
 
-            // Click anywhere on alert to dismiss
             $('.alert').on('click', function() {
                 $(this).addClass('fade-out');
                 var alert = $(this);
@@ -683,14 +767,12 @@
                 }, 500);
             });
 
-            // Handle return button click - show custom modal
             $('.btn-return').on('click', function(e) {
                 e.preventDefault();
                 currentForm = $(this).closest('.return-form');
                 $('#confirmReturnModal').modal('show');
             });
 
-            // Handle confirm button in modal
             $('#confirmReturnBtn').on('click', function() {
                 if (currentForm) {
                     $('#confirmReturnModal').modal('hide');
@@ -711,14 +793,41 @@
             }
         });
 
-        // SignalR - Lắng nghe cập nhật từ server
+        // ==================== SIGNALR REALTIME ====================
         const adminRentalConnection = new signalR.HubConnectionBuilder()
             .withUrl("/libraryHub")
             .build();
 
-        adminRentalConnection.on("RentalUpdated", function () {
-            // Reload trang khi có cập nhật
-            location.reload();
+        // Khi có thay đổi rental (trả, hủy, gia hạn, thanh toán...)
+        adminRentalConnection.on("RentalUpdated", function (data) {
+            if (!data || !data.transactionId) {
+                location.reload();
+                return;
+            }
+            showRealtimeToast(`Giao dịch #${data.transactionId} vừa được cập nhật!`, 'info');
+            updateOfflineRowStatus(data.transactionId, data.status);
+        });
+
+        // Khi user báo mất sách - THÔNG BÁO NGAY cho admin
+        adminRentalConnection.on("LostBookUpdated", function (data) {
+            showRealtimeToast(`⚠️ ${data.message}`, 'warning');
+            if (data.transactionId) {
+                updateOfflineRowStatus(data.transactionId, 'Lost');
+            }
+        });
+
+        // Khi số lượng sách thay đổi (trả hoặc mượn)
+        adminRentalConnection.on("BookAvailabilityUpdated", function (data) {
+            // Refresh page if book was returned (for reservation updates)
+            // For targeted update, you could dispatch custom event
+            console.log('Book availability updated:', data);
+        });
+
+        // Notification from server
+        adminRentalConnection.on("ReceiveNotification", function (data) {
+            if (data.type === 'LostBook' || data.type === 'Warning') {
+                showRealtimeToast(`🔔 ${data.message}`, 'warning');
+            }
         });
 
         adminRentalConnection.start()

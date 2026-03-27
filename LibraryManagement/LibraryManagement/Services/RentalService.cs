@@ -65,6 +65,15 @@ namespace LibraryManagement.Services
                 AvailableQuantity = book.AvailableQuantity
             });
 
+            await _hubContext.Clients.All.SendAsync("LostBookUpdated", new
+            {
+                TransactionId = transaction.TransactionId,
+                BookId = transaction.BookId,
+                BookTitle = bookTitle,
+                RenterName = renterName,
+                Message = msg
+            });
+
             return true;
         }
 
@@ -100,6 +109,17 @@ namespace LibraryManagement.Services
             {
                 BookId = transaction.BookId,
                 AvailableQuantity = transaction.Book.AvailableQuantity
+            });
+
+            // 3. Thông báo cho người đang đặt chỗ (nếu có)
+            await _reservationService.ProcessReservationWhenBookReturnedAsync(transaction.BookId);
+
+            // 4. Broadcast rental update cho AllRentals / MyRentals
+            await _hubContext.Clients.All.SendAsync("RentalUpdated", new
+            {
+                TransactionId = transactionId,
+                BookId = transaction.BookId,
+                Status = "Returned"
             });
 
             return true;

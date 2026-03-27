@@ -208,6 +208,23 @@ namespace LibraryManagement.Controllers
         }
 
         /// <summary>
+        /// Admin/Thủ thư xác nhận thanh toán tại quầy cho thuê sách online (chưa qua PayOS).
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Librarian")]
+        public async Task<IActionResult> ProcessPayment(int transactionId)
+        {
+            var ok = await _onlineRentalService.ProcessPaymentAsync(transactionId);
+            if (ok)
+                TempData["SuccessMessage"] = "Đã xác nhận thanh toán thuê online thành công.";
+            else
+                TempData["ErrorMessage"] = "Không thể xác nhận. Giao dịch không tồn tại hoặc đã thanh toán.";
+
+            return RedirectToAction("AllRentals", "Rentals");
+        }
+
+        /// <summary>
         /// Trang chi tiết gia hạn: chọn số ngày, xem phí, rồi bấm "Thanh toán bằng PayOS".
         /// </summary>
         [HttpGet]
