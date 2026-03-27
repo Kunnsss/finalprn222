@@ -42,7 +42,8 @@
             {
                 var isLost = rental.Status == "Lost";
                 var isCompensated = rental.Status == "Compensated";
-                var isOverdue = rental.Status == "Renting" && rental.DueDate < DateTime.Now;
+                var isOverdue = (rental.Status == "Renting" || rental.Status == "Overdue")
+                    && rental.DueDate < DateTime.Now;
                 var rowClass = isLost ? "table-secondary" : (isCompensated ? "table-success" : (isOverdue ? "table-danger" : (rental.Status == "Returned" ? "table-success" : "")));
 
                 <tr class="@rowClass">
@@ -52,7 +53,11 @@
                     <td>@(rental.ReturnDate?.ToString("dd/MM/yyyy") ?? "-")</td>
                     <td>@rental.RentalPrice.ToString("N0") VND</td>
                     <td>
-                        @if (rental.LateFee > 0)
+                        @if (rental.LateFeePaymentStatus == "Paid")
+                        {
+                            <span class="text-success"><i class="fas fa-check"></i> Đã thanh toán phí trễ</span>
+                        }
+                        else if (rental.LateFee > 0)
                         {
                             <span class="text-danger">@rental.LateFee.ToString("N0") VND</span>
                         }
@@ -73,7 +78,7 @@
                         }
                         else if (rental.Status == "Renting")
                         {
-                            if (isOverdue)
+                            @if (isOverdue)
                             {
                                 <span class="badge bg-danger">Quá hạn</span>
                             }
@@ -81,6 +86,10 @@
                             {
                                 <span class="badge bg-primary">Đang thuê</span>
                             }
+                        }
+                        else if (rental.Status == "Overdue")
+                        {
+                            <span class="badge bg-danger">Quá hạn</span>
                         }
                         else if (rental.Status == "Returned")
                         {
@@ -102,22 +111,33 @@
                     <td>
                         @if (rental.Status == "Renting" || rental.Status == "Overdue")
                         {
-                            <button type="button" class="btn btn-sm btn-success me-1"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#extendModal"
-                                    data-transaction-id="@rental.TransactionId"
-                                    data-book-title="@rental.Book.Title"
-                                    data-rental-price="@rental.RentalPrice.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)">
-                                <i class="fas fa-clock"></i> Gia hạn
-                            </button>
-                            <button type="button" class="btn btn-sm btn-warning me-1"
-                                    onclick="confirmLost(@rental.TransactionId, '@rental.Book.Title')">
-                                <i class="fas fa-exclamation-triangle"></i> Báo mất
-                            </button>
-                            <button type="button" class="btn btn-sm btn-danger"
-                                    onclick="confirmCancel(@rental.TransactionId, '@rental.Book.Title')">
-                                <i class="fas fa-times"></i> Hủy
-                            </button>
+                            @if (isOverdue && rental.LateFeePaymentStatus != "Paid")
+                            {
+                                <a asp-action="PaymentDetail" asp-route-transactionId="@rental.TransactionId"
+                                   class="btn btn-sm btn-danger">
+                                    <i class="fas fa-credit-card"></i> Thanh toán quá hạn
+                                </a>
+                            }
+                            else
+                            {
+                                <!-- Đang thuê / quá hạn đã trả phí trễ -->
+                                <button type="button" class="btn btn-sm btn-success me-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#extendModal"
+                                        data-transaction-id="@rental.TransactionId"
+                                        data-book-title="@rental.Book.Title"
+                                        data-rental-price="@rental.RentalPrice.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)">
+                                    <i class="fas fa-clock"></i> Gia hạn
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning me-1"
+                                        onclick="confirmLost(@rental.TransactionId, '@rental.Book.Title')">
+                                    <i class="fas fa-exclamation-triangle"></i> Báo mất
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="confirmCancel(@rental.TransactionId, '@rental.Book.Title')">
+                                    <i class="fas fa-times"></i> Hủy
+                                </button>
+                            }
                         }
                         else if (rental.Status == "PendingPayment")
                         {

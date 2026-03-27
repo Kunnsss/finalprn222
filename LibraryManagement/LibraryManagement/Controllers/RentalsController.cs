@@ -43,6 +43,27 @@ namespace LibraryManagement.Controllers
 
             var paged = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
+            // Cập nhật phí trễ tích lũy cho các giao dịch quá hạn (chưa trả sách) — không phụ thuộc job nền
+            foreach (var r in paged)
+            {
+                if ((r.Status == "Renting" || r.Status == "Overdue")
+                    && r.DueDate < DateTime.Now
+                    && r.LateFeePaymentStatus != "Paid")
+                {
+                    await _rentalService.CalculateLateFeeAsync(r.TransactionId);
+                }
+            }
+
+            var pagedIds = paged.Select(x => x.TransactionId).ToList();
+            paged = await _context.RentalTransactions
+                .Include(x => x.Book)
+                    .ThenInclude(b => b.Category)
+                .Where(x => pagedIds.Contains(x.TransactionId))
+                .ToListAsync();
+            paged = pagedIds
+                .Select(id => paged.First(t => t.TransactionId == id))
+                .ToList();
+
             ViewBag.Page = page;
             ViewBag.PageSize = pageSize;
             ViewBag.TotalItems = total;
@@ -165,6 +186,8 @@ namespace LibraryManagement.Controllers
                 .OrderByDescending(r => r.RentalDate)
                 .ToListAsync();
 
+            await SyncAccruedLateFeesForActiveOverdueAsync(offlineRentals);
+
             var onlineRentals = await _context.OnlineRentalTransactions
                 .Include(r => r.User)
                 .Include(r => r.Book)
@@ -190,6 +213,8 @@ namespace LibraryManagement.Controllers
                 .Where(r => r.Status != "Returned" && r.Status != "Lost" && r.Status != "Compensated" && r.DueDate < DateTime.Now)
                 .OrderBy(r => r.DueDate)
                 .ToListAsync();
+
+            await SyncAccruedLateFeesForActiveOverdueAsync(overdueOffline);
 
             // Lấy giao dịch online hết hạn
             var overdueOnline = await _context.OnlineRentalTransactions
@@ -341,11 +366,28 @@ namespace LibraryManagement.Controllers
             if (transaction.Status == "PendingPayment")
             {
                 ViewBag.PaymentType = transaction.ReturnDate.HasValue ? "Compensation" : "Initial";
-                ViewBag.PaymentAmount = transaction.TotalAmount;
+                // Đền bù mất sách: chỉ thu LateFee (phí trễ + tiền đền bù). Thuê mới: TotalAmount.
+                ViewBag.PaymentAmount = transaction.ReturnDate.HasValue
+                    ? transaction.LateFee
+                    : transaction.TotalAmount;
             }
             else if (transaction.Status == "Returned" && transaction.LateFee > 0 && transaction.LateFeePaymentStatus != "Paid")
             {
                 ViewBag.PaymentType = "LateFee";
+                ViewBag.PaymentAmount = transaction.LateFee;
+            }
+            else if ((transaction.Status == "Renting" || transaction.Status == "Overdue") && transaction.DueDate < DateTime.Now && transaction.LateFeePaymentStatus != "Paid")
+            {
+                await _rentalService.CalculateLateFeeAsync(transactionId);
+                transaction = await _context.RentalTransactions
+                    .Include(t => t.Book)
+                    .FirstOrDefaultAsync(t => t.TransactionId == transactionId && t.UserId == userId);
+                if (transaction == null || transaction.LateFee <= 0)
+                {
+                    TempData["ErrorMessage"] = "Không có phí trễ cần thanh toán.";
+                    return RedirectToAction(nameof(MyRentals));
+                }
+                ViewBag.PaymentType = "Overdue";
                 ViewBag.PaymentAmount = transaction.LateFee;
             }
             else
@@ -375,10 +417,16 @@ namespace LibraryManagement.Controllers
                 return RedirectToAction(nameof(MyRentals));
             }
 
-            // Amount = TotalAmount (covers initial rental OR compensation)
-            var amount = (int)Math.Max(2000, Math.Round(transaction.TotalAmount));
+            // Amount = LateFee (compensation: đền bù sách mất)
+            // Amount = TotalAmount (initial: thuê sách mới)
+            decimal amountToPay = transaction.ReturnDate.HasValue
+                ? transaction.LateFee
+                : transaction.TotalAmount;
+            var amount = (int)Math.Max(2000, Math.Round(amountToPay));
             var orderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var description = $"Thanh toan thue #{transactionId}";
+            var description = transaction.ReturnDate.HasValue
+                ? $"Den bu sach #{transactionId}"
+                : $"Thanh toan thue #{transactionId}";
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
             var returnUrl = $"{baseUrl}/PayOS/Return?type=RentalInitial&transactionId={transactionId}";
             var cancelUrl = $"{baseUrl}/PayOS/Cancel?type=RentalInitial&transactionId={transactionId}&orderCode={orderCode}";
@@ -403,7 +451,7 @@ namespace LibraryManagement.Controllers
         }
 
         /// <summary>
-        /// Thanh toán phí phạt trễ hạn online (sau khi trả sách).
+        /// Thanh toán phí phạt trễ hạn online (sau khi trả sách hoặc khi quá hạn).
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -415,6 +463,73 @@ namespace LibraryManagement.Controllers
                 .FirstOrDefaultAsync(t => t.TransactionId == transactionId && t.UserId == userId);
 
             if (transaction == null || transaction.LateFee <= 0 || transaction.LateFeePaymentStatus == "Paid")
+            {
+                TempData["ErrorMessage"] = "Không có phí phạt cần thanh toán.";
+                return RedirectToAction(nameof(MyRentals));
+            }
+
+            var amount = (int)Math.Max(2000, Math.Round(transaction.LateFee));
+            var orderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var description = $"Phi phat tre #{transactionId}";
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var returnUrl = $"{baseUrl}/PayOS/Return?type=RentalLateFee&transactionId={transactionId}";
+            var cancelUrl = $"{baseUrl}/PayOS/Cancel?type=RentalLateFee&transactionId={transactionId}&orderCode={orderCode}";
+
+            try
+            {
+                var (checkoutUrl, linkId) = await _payOSService.CreatePaymentLinkAsync(
+                    orderCode, amount, description, returnUrl, cancelUrl);
+
+                transaction.LateFeePayOSOrderCode = orderCode;
+                transaction.LateFeePayOSLinkId = linkId;
+                transaction.LateFeePaymentStatus = "Pending";
+                await _context.SaveChangesAsync();
+
+                return Redirect(checkoutUrl);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Không thể tạo link thanh toán: {ex.Message}";
+                return RedirectToAction(nameof(MyRentals));
+            }
+        }
+
+        /// <summary>
+        /// Thanh toán phí trễ hạn online khi sách đang quá hạn (chưa trả, chưa báo mất).
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PayOverdueOnline(int transactionId)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var transaction = await _context.RentalTransactions
+                .Include(t => t.Book)
+                .FirstOrDefaultAsync(t => t.TransactionId == transactionId && t.UserId == userId);
+
+            if (transaction == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy giao dịch.";
+                return RedirectToAction(nameof(MyRentals));
+            }
+
+            var isOverdue = transaction.DueDate < DateTime.Now;
+            if (!isOverdue)
+            {
+                TempData["ErrorMessage"] = "Giao dịch này chưa quá hạn.";
+                return RedirectToAction(nameof(MyRentals));
+            }
+
+            // Tính phí trễ để cập nhật LateFee (nếu chưa tính)
+            if (transaction.LateFee <= 0)
+            {
+                await _rentalService.CalculateLateFeeAsync(transactionId);
+                // Reload lại transaction để lấy LateFee mới
+                transaction = await _context.RentalTransactions
+                    .Include(t => t.Book)
+                    .FirstOrDefaultAsync(t => t.TransactionId == transactionId && t.UserId == userId);
+            }
+
+            if (transaction == null || transaction.LateFee <= 0)
             {
                 TempData["ErrorMessage"] = "Không có phí phạt cần thanh toán.";
                 return RedirectToAction(nameof(MyRentals));
@@ -482,6 +597,23 @@ namespace LibraryManagement.Controllers
                 TempData["ErrorMessage"] = "Không thể xử lý. Giao dịch không ở trạng thái \"Đã báo mất\".";
 
             return RedirectToAction(nameof(AllRentals));
+        }
+
+        /// <summary>
+        /// Cập nhật cột LateFee trong DB cho giao dịch đang mượn/quá hạn (chưa trả sách).
+        /// Trang admin chỉ đọc LateFee — không gọi thì DB vẫn 0 dù UI đã biết quá hạn.
+        /// </summary>
+        private async Task SyncAccruedLateFeesForActiveOverdueAsync(IEnumerable<RentalTransaction> rentals)
+        {
+            foreach (var r in rentals)
+            {
+                if ((r.Status == "Renting" || r.Status == "Overdue")
+                    && r.DueDate < DateTime.Now
+                    && r.LateFeePaymentStatus != "Paid")
+                {
+                    await _rentalService.CalculateLateFeeAsync(r.TransactionId);
+                }
+            }
         }
     }
 }

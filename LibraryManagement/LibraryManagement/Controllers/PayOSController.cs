@@ -189,6 +189,13 @@ namespace LibraryManagement.Controllers
                     {
                         lateFeeTx.LateFeePaymentStatus = "Paid";
                         lateFeeTx.LateFeePayOSLinkId = data.PaymentLinkId;
+
+                        // Nếu đang quá hạn → chuyển về Renting sau khi trả phí trễ
+                        if (lateFeeTx.Status == "Overdue")
+                        {
+                            lateFeeTx.Status = "Renting";
+                        }
+
                         await _context.SaveChangesAsync();
                         await _notificationService.SendNotificationAsync(lateFeeTx.UserId,
                             $"Thanh toán phí phạt sách '{lateFeeTx.Book.Title}' thành công!", "Success");
@@ -322,6 +329,13 @@ namespace LibraryManagement.Controllers
             if (tx.LateFeePaymentStatus != "Paid")
             {
                 tx.LateFeePaymentStatus = "Paid";
+
+                // Nếu đang quá hạn → chuyển về Renting sau khi trả phí trễ
+                if (tx.Status == "Overdue")
+                {
+                    tx.Status = "Renting";
+                }
+
                 await _context.SaveChangesAsync();
                 await _notificationService.SendNotificationAsync(tx.UserId,
                     $"Thanh toán phí phạt sách '{tx.Book.Title}' thành công!", "Success");

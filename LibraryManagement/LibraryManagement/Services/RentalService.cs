@@ -154,17 +154,39 @@ namespace LibraryManagement.Services
             var transaction = await _context.RentalTransactions
                 .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
 
-            if (transaction == null || transaction.ReturnDate == null)
+            if (transaction == null)
                 return 0;
 
-            if (transaction.ReturnDate <= transaction.DueDate)
+            // Đã thanh toán phí trễ online — không ghi đè / không cộng dồn lại
+            if (transaction.LateFeePaymentStatus == "Paid")
+                return transaction.LateFee;
+
+            // Chờ thanh toán đền bù mất: LateFee = phí trễ + đền bù (đã gộp), không tính lại
+            if (transaction.Status == "PendingPayment" && transaction.ReturnDate.HasValue)
+                return transaction.LateFee;
+
+            // Ngày kết thúc để tính trễ: ngày trả/báo mất, hoặc "hôm nay" nếu vẫn đang mượn mà quá hạn
+            DateTime effectiveEnd;
+            if (transaction.ReturnDate.HasValue)
+                effectiveEnd = transaction.ReturnDate.Value;
+            else if ((transaction.Status == "Renting" || transaction.Status == "Overdue")
+                     && transaction.DueDate < DateTime.Now)
+                effectiveEnd = DateTime.Now;
+            else
             {
                 transaction.LateFee = 0;
+                await _context.SaveChangesAsync();
                 return 0;
             }
 
-            // Số ngày trễ
-            int lateDays = (transaction.ReturnDate.Value.Date - transaction.DueDate.Date).Days;
+            if (effectiveEnd <= transaction.DueDate)
+            {
+                transaction.LateFee = 0;
+                await _context.SaveChangesAsync();
+                return 0;
+            }
+
+            int lateDays = (effectiveEnd.Date - transaction.DueDate.Date).Days;
 
             // 5.000 VND / ngày, tối đa 500.000
             decimal lateFee = lateDays * 5000;
@@ -172,8 +194,6 @@ namespace LibraryManagement.Services
                 lateFee = 500000;
 
             transaction.LateFee = lateFee;
-            transaction.TotalAmount += lateFee;
-
             await _context.SaveChangesAsync();
             return lateFee;
         }
@@ -212,6 +232,11 @@ namespace LibraryManagement.Services
             }
 
             await _context.SaveChangesAsync();
+
+            foreach (var rental in overdueRentals)
+            {
+                await CalculateLateFeeAsync(rental.TransactionId);
+            }
         }
 
         public async Task<bool> CancelRentalAsync(int transactionId, int userId)
@@ -316,7 +341,6 @@ namespace LibraryManagement.Services
                 return false;
 
             transaction.LateFee += compensationAmount;
-            transaction.TotalAmount += compensationAmount;
             transaction.Status = "PendingPayment";
 
             await _context.SaveChangesAsync();
