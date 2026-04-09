@@ -1,56 +1,84 @@
-﻿<!-- Views/OnlineRentals/Payment.cshtml -->
 @model LibraryManagement.Models.OnlineRentalTransaction
 @{
-    ViewData["Title"] = "Thanh toán";
+    ViewData["Title"] = "Xác nhận thanh toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-6">
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
         <div class="card shadow">
             <div class="card-header bg-warning text-dark">
-                <h4 class="mb-0"><i class="fas fa-credit-card"></i> Thanh toán</h4>
+                <h4 class="mb-0"><i class="fas fa-credit-card"></i> Xác nhận thanh toán</h4>
             </div>
             <div class="card-body">
-                <h5 class="mb-4">Thông tin giao dịch</h5>
 
-                <table class="table">
-                    <tr>
-                        <th>Sách:</th>
-                        <td>@Model.Book.Title</td>
-                    </tr>
-                    <tr>
-                        <th>Ngày mua:</th>
-                        <td>@Model.PurchaseDate.ToString("dd/MM/yyyy HH:mm")</td>
-                    </tr>
-                    <tr>
-                        <th>Hết hạn:</th>
-                        <td>@Model.ExpiryDate.ToString("dd/MM/yyyy HH:mm")</td>
-                    </tr>
-                    <tr>
-                        <th>Số tiền:</th>
-                        <td><strong class="text-danger">@Model.Amount.ToString("N0") VND</strong></td>
-                    </tr>
+                <!-- Book info -->
+                <div class="d-flex align-items-center mb-4">
+                    <div class="me-3">
+                        <i class="fas fa-laptop fa-3x text-info"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1">@Model.Book.Title</h5>
+                        <span class="badge bg-warning text-dark">Chờ thanh toán</span>
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- Transaction details -->
+                <table class="table table-borderless">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">Ngày đăng ký</td>
+                            <td><strong>@Model.PurchaseDate.ToString("dd/MM/yyyy HH:mm")</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Hiệu lực đến</td>
+                            <td><strong>@Model.ExpiryDate.ToString("dd/MM/yyyy")</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Số ngày truy cập</td>
+                            <td>@((Model.ExpiryDate - Model.PurchaseDate).Days) ngày</td>
+                        </tr>
+                        <tr class="table-active">
+                            <td><strong>Số tiền thanh toán</strong></td>
+                            <td><strong class="text-success fs-5">@Model.Amount.ToString("N0") VND</strong></td>
+                        </tr>
+                    </tbody>
                 </table>
+
+                <hr />
 
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i>
-                    Đây là demo thanh toán. Trong thực tế, bạn sẽ được chuyển đến cổng thanh toán (VNPay, MoMo, ZaloPay...)
+                    Sau khi thanh toán thành công, bạn có thể truy cập sách online ngay lập tức.
                 </div>
 
-                <form asp-action="ProcessPayment" method="post">
+                <!-- PayOS payment form -->
+                <form asp-action="InitiatePayment" method="post">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" name="transactionId" value="@Model.OnlineTransactionId" />
-
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-check-circle"></i> Xác nhận thanh toán
+                            <i class="fas fa-credit-card"></i> Thanh toán bằng PayOS
                         </button>
-                        <a asp-action="MyOnlineRentals" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Hủy
+                        <a asp-action="MyOnlineRentals" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại
                         </a>
                     </div>
                 </form>
+
             </div>
         </div>
+
     </div>
 </div>

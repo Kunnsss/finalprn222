@@ -35,6 +35,11 @@ namespace LibraryManagement.Models
         public string Status { get; set; } = "Active"; // Active, Expired
 
         [StringLength(20)]
-        public string PaymentStatus { get; set; } = "Pending"; // Pending, Paid
+        public string PaymentStatus { get; set; } = "Pending"; // Pending, Paid, Cancelled
+
+        public long? PayOSOrderCode { get; set; }
+
+        [StringLength(100)]
+        public string? PayOSPaymentLinkId { get; set; }
     }
 }

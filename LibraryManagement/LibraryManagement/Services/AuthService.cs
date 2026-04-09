@@ -58,7 +58,7 @@ namespace LibraryManagement.Services
                 CreatedDate = DateTime.Now,
                 IsEmailVerified = false,
                 EmailVerificationToken = Guid.NewGuid().ToString("N"),
-                EmailVerificationTokenExpiry = DateTime.Now.AddHours(24)
+                EmailVerificationTokenExpiry = DateTime.Now.AddMinutes(10)
             };
 
             user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);

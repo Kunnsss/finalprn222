@@ -82,13 +82,10 @@
                             <a asp-action="AccessBook" asp-route-transactionId="@rental.OnlineTransactionId" class="btn btn-sm btn-success me-1">
                                 <i class="fas fa-book-open"></i> Đọc sách
                             </a>
-                            <button type="button" class="btn btn-sm btn-primary me-1" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#extendOnlineModal"
-                                    data-transaction-id="@rental.OnlineTransactionId"
-                                    data-book-title="@rental.Book.Title">
+                            <a asp-action="ExtendDetail" asp-route-transactionId="@rental.OnlineTransactionId"
+                               class="btn btn-sm btn-primary me-1">
                                 <i class="fas fa-clock"></i> Gia hạn
-                            </button>
+                            </a>
                             <button type="button" class="btn btn-sm btn-danger" 
                                     onclick="confirmCancelOnline(@rental.OnlineTransactionId, '@rental.Book.Title')">
                                 <i class="fas fa-times"></i> Hủy
@@ -112,22 +109,24 @@
     </div>
 }
 
-<!-- Modal Gia hạn Online -->
+<!-- Modal Gia hạn Online (chuyển sang PayOS) -->
 <div class="modal fade" id="extendOnlineModal" tabindex="-1" aria-labelledby="extendOnlineModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="extendOnlineModalLabel">Gia hạn sách online</h5>
+                <h5 class="modal-title" id="extendOnlineModalLabel"><i class="fas fa-clock"></i> Gia hạn sách online</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="extendOnlineForm" method="post" asp-action="ExtendOnlineRental">
+                @Html.AntiForgeryToken()
                 <div class="modal-body">
                     <input type="hidden" id="extendOnlineTransactionId" name="transactionId" />
-                    <p>Bạn muốn gia hạn sách online <strong id="extendOnlineBookTitle"></strong> thêm bao nhiêu ngày?</p>
-                    
+                    <input type="hidden" id="extendOnlineDailyRate" value="" />
+                    <p>Gia hạn sách online <strong id="extendOnlineBookTitle"></strong></p>
+
                     <div class="mb-3">
                         <label for="additionalDaysOnline" class="form-label">Số ngày gia hạn:</label>
-                        <select class="form-select" id="additionalDaysOnline" name="additionalDays" required>
+                        <select class="form-select" id="additionalDaysOnline" name="additionalDays" required onchange="calcOnlineFee(this.value)">
                             <option value="">-- Chọn số ngày --</option>
                             <option value="7">7 ngày</option>
                             <option value="14">14 ngày</option>
@@ -135,10 +134,14 @@
                             <option value="60">60 ngày</option>
                         </select>
                     </div>
+                    <div id="onlineFeePreview" class="alert alert-info d-none">
+                        Phí gia hạn: <strong id="onlineFeeAmount"></strong> VND
+                        <br/><small class="text-muted">Bạn sẽ được chuyển đến cổng thanh toán PayOS</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-primary">Xác nhận gia hạn</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-credit-card"></i> Thanh toán qua PayOS</button>
                 </div>
             </form>
         </div>
@@ -158,10 +161,22 @@
             var button = event.relatedTarget;
             var transactionId = button.getAttribute('data-transaction-id');
             var bookTitle = button.getAttribute('data-book-title');
-            
+            var dailyRate = button.getAttribute('data-daily-rate');
+
             document.getElementById('extendOnlineTransactionId').value = transactionId;
             document.getElementById('extendOnlineBookTitle').textContent = bookTitle;
+            document.getElementById('extendOnlineDailyRate').value = dailyRate;
+            document.getElementById('additionalDaysOnline').value = '';
+            document.getElementById('onlineFeePreview').classList.add('d-none');
         });
+    }
+
+    function calcOnlineFee(days) {
+        if (!days) { document.getElementById('onlineFeePreview').classList.add('d-none'); return; }
+        var rate = parseFloat(document.getElementById('extendOnlineDailyRate').value) || 0;
+        var fee = Math.round(rate * parseInt(days));
+        document.getElementById('onlineFeeAmount').textContent = fee.toLocaleString('vi-VN');
+        document.getElementById('onlineFeePreview').classList.remove('d-none');
     }
 
     // Xử lý xác nhận hủy online

@@ -1,0 +1,139 @@
+@model LibraryManagement.Models.OnlineRentalTransaction
+@{
+    ViewData["Title"] = "Gia hạn sách online";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var dailyRate = Model.Amount / 30m;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        }
+
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-clock"></i> Gia hạn sách online</h4>
+            </div>
+            <div class="card-body">
+
+                <!-- Book info -->
+                <div class="d-flex align-items-center mb-4">
+                    <div class="me-3">
+                        <i class="fas fa-laptop fa-3x text-info"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1">@Model.Book.Title</h5>
+                        <span class="badge bg-success">Đang hiệu lực</span>
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- Current status -->
+                <table class="table table-borderless mb-3">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">Ngày mua</td>
+                            <td><strong>@Model.PurchaseDate.ToString("dd/MM/yyyy")</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Hết hạn hiện tại</td>
+                            <td>
+                                <strong class="text-@(Model.ExpiryDate < DateTime.Now.AddDays(7) ? "danger" : "success")">
+                                    @Model.ExpiryDate.ToString("dd/MM/yyyy")
+                                </strong>
+                                @if (Model.ExpiryDate < DateTime.Now.AddDays(7))
+                                {
+                                    <span class="badge bg-warning text-dark ms-1">Sắp hết hạn</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Giá gốc (30 ngày)</td>
+                            <td>@Model.Amount.ToString("N0") VND</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Giá mỗi ngày</td>
+                            <td>@dailyRate.ToString("N0") VND / ngày</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <hr />
+
+                <!-- Extend form -->
+                <form method="post" asp-action="ExtendOnlineRental">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="transactionId" value="@Model.OnlineTransactionId" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn số ngày gia hạn:</label>
+                        <select class="form-select form-select-lg" name="additionalDays" id="additionalDays" required onchange="updateFee(this.value)">
+                            <option value="">-- Chọn số ngày --</option>
+                            <option value="7">7 ngày</option>
+                            <option value="14">14 ngày</option>
+                            <option value="30">30 ngày</option>
+                            <option value="60">60 ngày</option>
+                            <option value="90">90 ngày</option>
+                        </select>
+                    </div>
+
+                    <div id="feePreview" class="d-none">
+                        <div class="alert alert-success">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="text-muted small">Hết hạn mới</div>
+                                    <strong id="newExpiry">--</strong>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted small">Phí gia hạn</div>
+                                    <strong class="fs-5" id="feeAmount">--</strong> VND
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary btn-lg" id="payBtn" disabled>
+                            <i class="fas fa-credit-card"></i> Thanh toán bằng PayOS
+                        </button>
+                        <a asp-action="MyOnlineRentals" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại
+                        </a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const dailyRate = @dailyRate.ToString("F4", System.Globalization.CultureInfo.InvariantCulture);
+        const currentExpiry = new Date('@Model.ExpiryDate.ToString("yyyy-MM-dd")');
+
+        function updateFee(days) {
+            if (!days) {
+                document.getElementById('feePreview').classList.add('d-none');
+                document.getElementById('payBtn').disabled = true;
+                return;
+            }
+
+            const d = parseInt(days);
+            const fee = Math.round(dailyRate * d);
+
+            const newExpiry = new Date(currentExpiry);
+            newExpiry.setDate(newExpiry.getDate() + d);
+
+            document.getElementById('feeAmount').textContent = fee.toLocaleString('vi-VN');
+            document.getElementById('newExpiry').textContent = newExpiry.toLocaleDateString('vi-VN');
+            document.getElementById('feePreview').classList.remove('d-none');
+            document.getElementById('payBtn').disabled = false;
+        }
+    </script>
+}

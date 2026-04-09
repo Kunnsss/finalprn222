@@ -19,7 +19,7 @@
                     Một email xác thực đã được gửi đến địa chỉ email của bạn.<br />
                     Vui lòng kiểm tra email và nhấn vào link xác thực để kích hoạt tài khoản.
                 </p>
-                <p class="text-muted small">Link xác thực có hiệu lực trong <strong>24 giờ</strong>.</p>
+                <p class="text-muted small">Link xác thực có hiệu lực trong <strong>10 phút</strong>.</p>
             }
             else if (result == "success")
             {
@@ -44,7 +44,7 @@
                 </div>
                 <h4 class="mb-3 text-warning">Link đã hết hạn</h4>
                 <p class="text-muted">
-                    Link xác thực đã hết hạn (sau 24 giờ). Vui lòng đăng ký lại để nhận link mới.
+                    Link xác thực đã hết hạn (sau 10 phút). Vui lòng đăng ký lại để nhận link mới.
                 </p>
                 <p class="text-muted small">Bạn sẽ được chuyển đến trang đăng ký sau <strong id="countdown">5</strong> giây...</p>
                 <a asp-controller="Account" asp-action="Register" class="btn btn-warning mt-2">

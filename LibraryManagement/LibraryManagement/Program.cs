@@ -37,6 +37,9 @@ builder.Services.AddScoped<IRentalService, RentalServiceEnhanced>();
 builder.Services.AddScoped<IOnlineRentalService, OnlineRentalService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+// PayOS
+builder.Services.AddScoped<IPayOSService, PayOSService>();
+
 // Book Services
 builder.Services.AddScoped<IBookReservationService, BookReservationService>();
 builder.Services.AddScoped<IBookRecommendationService, BookRecommendationService>();
